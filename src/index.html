@@ -7,42 +7,95 @@
 <title>R.S.S.</title>
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="modules.css">
 </head>
 <body>
-<div class="titlebar"><span class="tb-mark">R.S.S.</span><span class="tb-sep">//</span><span class="tb-txt">ARCHIVE TERMINAL</span></div>
+<!-- 등급 배너 (창 제목 표시줄 겸용) -->
+<div class="banner banner-top"><span class="bn-l">극비</span><span class="bn-c">TOP SECRET // R.S.S. EYES ONLY</span><span class="bn-r" id="bnClock">--:--:--</span></div>
+<div class="banner banner-bot"><span class="bn-c">극비 // TOP SECRET // 무단 열람 · 복제 · 반출 금지</span></div>
 
-<!-- 인트로: 실행할 때마다, 잠금 해제할 때마다 다시 나옴 -->
+<!-- 화면 효과 층 -->
+<div class="fx-scan" aria-hidden="true"></div>
+<div class="fx-vignette" aria-hidden="true"></div>
+
+<!-- 인트로(잠금): 실행할 때마다, 잠금 해제할 때마다 처음부터 재생 -->
 <section id="intro" class="intro" aria-label="접속 인증">
+  <canvas id="globe" class="globe" aria-hidden="true"></canvas>
+  <div class="hud hud-l" aria-hidden="true">
+    <div class="hud-h">SYSTEM STATUS</div>
+    <dl class="hud-dl">
+      <dt>ENCRYPTION</dt><dd>AES-256-GCM</dd>
+      <dt>KEY DERIVATION</dt><dd>PBKDF2 · 310,000</dd>
+      <dt>VAULT</dt><dd id="hudVault">SEALED</dd>
+      <dt>STORAGE</dt><dd>LOCAL ONLY</dd>
+      <dt>NETWORK</dt><dd>OFFLINE</dd>
+      <dt>LOCAL TIME</dt><dd id="hudTime">--</dd>
+    </dl>
+  </div>
+  <div class="hud hud-r" aria-hidden="true"><div class="hud-h">DATA STREAM</div><div class="hex"><div class="hex-in" id="hexStream"></div></div></div>
+  <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
   <div class="lock">
-    <div class="emblem" id="introEmblem" aria-hidden="true"></div>
-    <h1 class="brand">R.S.S.</h1>
-    <p class="brand-sub">ARCHIVE ACCESS TERMINAL</p>
+    <div class="holo" aria-hidden="true">
+      <div class="holo-em" id="introEmblem"></div>
+      <div class="holo-beam"></div>
+      <div class="holo-base"></div>
+    </div>
+    <h1 class="brand" data-text="R.S.S.">R.S.S.</h1>
+    <p class="brand-sub">CENTRAL ARCHIVE · ACCESS TERMINAL</p>
     <p class="lock-status" id="lockStatus" aria-live="polite"></p>
     <div class="code-box">
-      <div class="code-label"><span id="codeMode">ACCESS CODE</span><span id="codeCount">0/8</span></div>
+      <div class="code-label"><span id="codeMode">ACCESS CODE</span><span class="code-meter"><i id="codeBar"></i></span><span id="codeCount">0/8</span></div>
       <div class="code-slots" id="codeSlots"></div>
     </div>
     <div class="keypad" id="keypad"></div>
-    <p class="lock-foot" id="lockFoot">키보드 숫자키 입력 가능 · ENTER 확인</p>
+    <p class="lock-foot" id="lockFoot"></p>
+    <p class="lock-warn">본 시스템은 인가된 인원 전용입니다. 모든 접속 시도는 기록됩니다.</p>
   </div>
 </section>
 
+<!-- 메인: 터미널 + 로그 -->
 <div id="app" class="app" hidden>
-  <nav class="rail" aria-label="메뉴">
-    <div class="rail-emblem" id="railEmblem" aria-hidden="true"></div>
-    <button class="nav" data-view="files"><span class="nav-k">01</span><span class="nav-t">파일</span></button>
-    <button class="nav" data-view="graph"><span class="nav-k">02</span><span class="nav-t">관계도</span></button>
-    <button class="nav" data-view="timeline"><span class="nav-k">03</span><span class="nav-t">타임라인</span></button>
-    <button class="nav" data-view="security"><span class="nav-k">04</span><span class="nav-t">보안·백업</span></button>
-  </nav>
   <header class="topbar">
-    <div class="crumb"><span class="crumb-k" id="crumbK">01</span><span id="crumbT">파일</span></div>
-    <div class="top-actions">
-      <button class="chip" id="soundBtn" aria-pressed="false" title="효과음">SOUND <b>OFF</b></button>
-      <button class="chip chip-accent" id="lockBtn" title="잠그기">LOCK</button>
+    <div class="tb-id">
+      <div class="tb-em" id="topEmblem" aria-hidden="true"></div>
+      <div class="tb-name"><b>R.S.S.</b><span>CENTRAL ARCHIVE</span></div>
+    </div>
+    <div class="tb-meta">
+      <span><em>SESSION</em><b id="sessId">----</b></span>
+      <span><em>CLEARANCE</em><b>LEVEL 3</b></span>
+      <span><em>UPTIME</em><b id="uptime">00:00:00</b></span>
+    </div>
+    <div class="tb-act">
+      <button class="hbtn" id="soundBtn" aria-pressed="false" type="button">SOUND <b>OFF</b></button>
+      <button class="hbtn hbtn-a" id="lockBtn" type="button">LOCK</button>
     </div>
   </header>
-  <main id="view" class="view"></main>
+  <main class="desk">
+    <section class="win win-term" aria-label="터미널">
+      <div class="win-h"><span class="win-k">TTY-0</span><span class="win-t">TERMINAL</span><span class="win-s">SECURE SHELL // ENCRYPTED SESSION</span><span class="win-led"></span></div>
+      <div class="term" id="term">
+        <div class="term-out" id="termOut" aria-live="polite"></div>
+        <form class="term-line" id="termForm" autocomplete="off">
+          <label class="term-ps" for="termIn" id="termPs">agent@rss:~$</label>
+          <input class="term-in" id="termIn" spellcheck="false" autocomplete="off" autocapitalize="off" enterkeyhint="send">
+        </form>
+      </div>
+    </section>
+    <section class="win win-log" aria-label="시스템 로그">
+      <div class="win-h"><span class="win-k">LOG-1</span><span class="win-t">SYSTEM LOG</span><span class="win-s" id="logCount">0 ENTRIES</span><span class="win-led"></span></div>
+      <div class="radar-box"><canvas id="radar" class="radar"></canvas><div class="radar-cap"><b>ARCHIVE SCAN</b><span id="radarInfo">0 TARGETS</span></div></div>
+      <div class="log" id="logList" role="log" aria-live="polite"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 모듈 창: 터미널 명령으로 열림 -->
+<div id="module" class="module" hidden>
+  <div class="mod-win">
+    <div class="win-h mod-h"><span class="win-k" id="modK">MOD</span><span class="win-t" id="modT">MODULE</span><span class="win-s">ESC 로 닫고 터미널로 복귀</span><button class="mod-x" id="modX" type="button" aria-label="닫기">CLOSE ✕</button></div>
+    <div class="mod-body" id="view"></div>
+  </div>
 </div>
 
 <div id="modal" class="modal" hidden></div>
@@ -50,9 +103,11 @@
 
 <script src="js/emblem.js"></script>
 <script src="js/core.js"></script>
+<script src="js/fx.js"></script>
 <script src="js/intro.js"></script>
 <script src="js/views.js"></script>
 <script src="js/graph.js"></script>
+<script src="js/terminal.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

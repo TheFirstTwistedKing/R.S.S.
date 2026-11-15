@@ -4,7 +4,7 @@
   var R = window.RSS, h = R.h;
   var POS = {};            // 노드 위치 기억 (화면을 오가도 유지)
   var VIEW = null;         // 마지막 시점 {x, y, k}
-  var C = { bg: '#0A0B0C', line: '#363B40', lineHi: '#FF6B1A', text: '#E8E2D4', muted: '#8C9196', faint: '#5A6066', accent: '#FF6B1A', panel: '#111315' };
+  var C = { bg: '#0C0D0F', line: 'rgba(255,176,32,.28)', lineHi: '#FFB020', text: '#F3E8D2', muted: '#A69B84', faint: '#6E6654', accent: '#FFB020', panel: '#0C0D0F' };
   var SHAPE = { character: '■', organization: '□', location: '◆', item: '▪', lore: '◇' };
 
   R.views.graph = function (root, opts) {
@@ -120,7 +120,7 @@
       g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
       // 격자 (선만 사용, 점 패턴 없음)
       var step = 48 * view.k; if (step > 12) {
-        g.strokeStyle = 'rgba(232,226,212,0.035)'; g.lineWidth = 1; g.beginPath();
+        g.strokeStyle = 'rgba(255,176,32,0.05)'; g.lineWidth = 1; g.beginPath();
         var ox = ((W / 2 - view.x * view.k) % step + step) % step, oy = ((H / 2 - view.y * view.k) % step + step) % step;
         for (var x = ox; x < W; x += step) { g.moveTo(Math.round(x) + .5, 0); g.lineTo(Math.round(x) + .5, H); }
         for (var y = oy; y < H; y += step) { g.moveTo(0, Math.round(y) + .5); g.lineTo(W, Math.round(y) + .5); }
@@ -133,7 +133,7 @@
       // 연결선
       edges.forEach(function (l) {
         var hi = focus && (l.a.id === focus || l.b.id === focus);
-        g.strokeStyle = hi ? C.lineHi : (focus ? 'rgba(54,59,64,.5)' : C.line);
+        g.strokeStyle = hi ? C.lineHi : (focus ? 'rgba(255,176,32,.08)' : C.line);
         g.lineWidth = hi ? 2 : 1.5;
         var x1 = sx(l.a.x), y1 = sy(l.a.y), x2 = sx(l.b.x), y2 = sy(l.b.y);
         g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
@@ -142,7 +142,7 @@
         g.fillStyle = hi ? C.lineHi : C.line; g.fillRect(Math.round(mx) - 2, Math.round(my) - 2, 4, 4);
         if (l.label && (hi || (!focus && view.k > 0.9))) {
           var lx = (x1 + x2) / 2, ly = (y1 + y2) / 2;
-          g.font = '11px GM11, G11, monospace';
+          g.font = '11px D2Coding, monospace';
           var tw = g.measureText(l.label).width;
           g.fillStyle = C.bg; g.fillRect(Math.round(lx - tw / 2 - 4), Math.round(ly - 9), Math.round(tw + 8), 17);
           g.fillStyle = hi ? C.accent : C.muted; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -161,7 +161,7 @@
         shape(p.e.type, x, y, s, col, col);
         if (p.id === sel) { g.strokeStyle = C.accent; g.lineWidth = 2; g.strokeRect(Math.round(x - s - 5) + .0, Math.round(y - s - 5), Math.round(s * 2 + 10), Math.round(s * 2 + 10)); }
         if (view.k > 0.45 || p.id === focus || near[p.id] && focus) {
-          g.font = '11px G11, monospace';
+          g.font = '12px Pretendard, sans-serif';
           g.fillStyle = p.id === focus ? C.accent : (dim ? C.faint : C.text);
           g.fillText(p.e.name, Math.round(x), Math.round(y + s + 6));
         }

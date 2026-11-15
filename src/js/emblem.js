@@ -1,76 +1,59 @@
-/* R.S.S. 문장: 방패 + 양 날개 픽셀 아트 생성기 (앱과 아이콘 빌드 스크립트가 함께 사용) */
+/* R.S.S. 문장: 방패 + 양 날개 벡터 (앱 화면과 아이콘 빌드 스크립트가 함께 사용) */
 (function (root) {
   'use strict';
-  var W = 43, H = 19, CX = 21, TOP = 2;
-  var SHIELD_HW = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 4, 3, 2, 1];
-  var FEATHERS = [15, 13, 11, 8, 5];
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
 
-  function build() {
-    var mask = {}, px = [];
-    var key = function (x, y) { return x + ',' + y; };
-    SHIELD_HW.forEach(function (hw, r) {
-      for (var x = CX - hw; x <= CX + hw; x++) mask[key(x, TOP + r)] = 1;
-    });
-    var inMask = function (x, y) { return !!mask[key(x, y)]; };
-    // 체비셰프 거리 침식: 사선 가장자리에서도 테두리가 끊기지 않게
-    var eroded = function (x, y, n) {
-      for (var dy = -n; dy <= n; dy++) for (var dx = -n; dx <= n; dx++) if (!inMask(x + dx, y + dy)) return false;
-      return true;
-    };
-    // 방패 안의 계급 V자 2개
-    var chev = {};
-    [3, 6].forEach(function (b) {
-      for (var i = 0; i < 3; i++) {
-        var y = TOP + b + i, d = 2 - i;
-        chev[key(CX - d, y)] = 1; chev[key(CX + d, y)] = 1;
-        if (d > 0) { chev[key(CX - d + 1, y)] = 1; chev[key(CX + d - 1, y)] = 1; }
-      }
-    });
-    Object.keys(mask).forEach(function (k) {
-      var xy = k.split(',').map(Number), x = xy[0], y = xy[1];
-      var c;
-      if (!eroded(x, y, 1)) c = 'a';
-      else if (!eroded(x, y, 2)) c = 'k';
-      else c = chev[k] ? 'k' : 'a';
-      if (c !== 'k') px.push({ x: x, y: y, c: c, part: 'shield', d: 0 });
-    });
-    // 날개: 깃털 줄은 2칸 두께, 1칸 간격, 바깥으로 갈수록 위로 휘어짐
-    var startX = CX + SHIELD_HW[0] + 1;
-    FEATHERS.forEach(function (len, f) {
-      var ys = TOP + 2 + f * 3;
-      for (var dx = 0; dx < len; dx++) {
-        var rise = Math.floor(dx / 3);
-        var tip = dx === len - 1;
-        [0, 1].forEach(function (t) {
-          if (tip && t === 1) return;
-          var y = ys - rise + t;
-          var c = t === 0 ? 'a' : 'd';
-          px.push({ x: startX + dx, y: y, c: c, part: 'wing', d: dx, f: f });
-          px.push({ x: 2 * CX - (startX + dx), y: y, c: c, part: 'wing', d: dx, f: f });
-        });
-      }
-    });
-    return px;
+  function feather(i, side) {
+    var rx = 20, ry = -24 + i * 11.5;
+    var a = (-30 + i * 13) * Math.PI / 180;
+    var L = 96 - i * 14, w = 11 - i * 1.3;
+    var ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
+    var tx = rx + ca * L, ty = ry + sa * L - (4 - i) * 2.2;
+    var mx = rx + ca * L * 0.55, my = ry + sa * L * 0.55;
+    var p = [
+      [rx + nx * -w / 2, ry + ny * -w / 2],
+      [mx + nx * -w * 0.95, my + ny * -w * 0.95 - 3],
+      [tx, ty],
+      [mx + nx * w * 0.55, my + ny * w * 0.55],
+      [rx + nx * w / 2, ry + ny * w / 2]
+    ].map(function (q) { return [r1(q[0] * side), r1(q[1])]; });
+    var blade = 'M' + p[0] + 'Q' + p[1] + ' ' + p[2] + 'Q' + p[3] + ' ' + p[4] + 'Z';
+    var spine = 'M' + r1(rx * side) + ',' + r1(ry) + 'Q' + r1(mx * side) + ',' + r1(my - 1.5) + ' ' + p[2];
+    return { blade: blade, spine: spine, i: i };
   }
 
-  var COLORS = { a: '#FF6B1A', d: '#9C3C0C' };
+  var SHIELD = 'M-25,-34H25V2C25,20 13,32 0,41C-13,32 -25,20 -25,2Z';
+  var SHIELD_IN = 'M-19,-28H19V2C19,16 10,25.5 0,33C-10,25.5 -19,16 -19,2Z';
+  var CHEV = 'M-11,-16L0,-6L11,-16M-11,-3L0,7L11,-3';
 
+  /* mode: 'holo' = 선 + 반투명 면 (화면용), 'solid' = 채운 면 (아이콘용) */
   function svg(opts) {
     opts = opts || {};
-    var px = build(), cell = opts.cell || 1, pad = opts.pad || 0;
-    var w = W * cell + pad * 2, h = H * cell + pad * 2;
-    var rects = px.map(function (p) {
-      var cls = 'px ' + p.part + (p.part === 'wing' ? ' f' + p.f : '');
-      var style = p.part === 'wing' ? ' style="--d:' + p.d + '"' : '';
-      return '<rect class="' + cls + '"' + style + ' x="' + (pad + p.x * cell) + '" y="' + (pad + p.y * cell) +
-        '" width="' + cell + '" height="' + cell + '" fill="' + COLORS[p.c] + '"/>';
-    }).join('');
-    var bg = opts.bg ? '<rect width="' + w + '" height="' + h + '" fill="' + opts.bg + '"/>' : '';
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges"' +
-      (opts.attrs || '') + '>' + bg + rects + '</svg>';
+    var c = opts.color || '#FFB020', mode = opts.mode || 'holo';
+    var fs = [];
+    for (var i = 0; i < 5; i++) { fs.push(feather(i, 1)); fs.push(feather(i, -1)); }
+    var out = '';
+    if (mode === 'solid') {
+      var dark = opts.ink || '#07080A';
+      out += fs.map(function (f) { return '<path d="' + f.blade + '" fill="' + c + '"/>'; }).join('');
+      out += fs.map(function (f) { return '<path d="' + f.spine + '" fill="none" stroke="' + dark + '" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>'; }).join('');
+      out += '<path d="' + SHIELD + '" fill="' + c + '"/>';
+      out += '<path d="' + SHIELD_IN + '" fill="none" stroke="' + dark + '" stroke-width="3"/>';
+      out += '<path d="' + CHEV + '" fill="none" stroke="' + dark + '" stroke-width="5" stroke-linejoin="miter" stroke-linecap="square"/>';
+    } else {
+      out += '<g class="em-wings">' + fs.map(function (f) {
+        return '<g class="em-f" style="--i:' + f.i + '"><path d="' + f.blade + '" fill="' + c + '" fill-opacity=".10" stroke="' + c + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+          '<path d="' + f.spine + '" fill="none" stroke="' + c + '" stroke-width=".7" stroke-opacity=".55"/></g>';
+      }).join('') + '</g>';
+      out += '<g class="em-shield"><path d="' + SHIELD + '" fill="' + (opts.ink || '#07080A') + '"/><path d="' + SHIELD + '" fill="' + c + '" fill-opacity=".14" stroke="' + c + '" stroke-width="1.6"/>' +
+        '<path d="' + SHIELD_IN + '" fill="none" stroke="' + c + '" stroke-width=".8" stroke-opacity=".6"/>' +
+        '<path d="' + CHEV + '" fill="none" stroke="' + c + '" stroke-width="3.2" stroke-linejoin="miter"/></g>';
+    }
+    var vb = opts.viewBox || '-106 -84 212 128';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '"' + (opts.attrs || '') + '>' + (opts.bg ? '<rect x="-200" y="-200" width="400" height="400" fill="' + opts.bg + '"/>' : '') + out + '</svg>';
   }
 
-  var api = { W: W, H: H, build: build, svg: svg, COLORS: COLORS };
+  var api = { svg: svg, SHIELD: SHIELD };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RSSEmblem = api;
 })(this);

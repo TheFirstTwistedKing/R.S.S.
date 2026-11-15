@@ -71,7 +71,8 @@
   var F = { type: 'all', q: '', sel: null, edit: false };
   R.views = {};
   R.views.files = function (root, opts) {
-    if (opts && opts.select) { F.sel = opts.select; F.edit = false; F.type = 'all'; F.q = ''; }
+    if (opts && opts.select) { F.sel = opts.select; F.edit = opts.edit ? 'edit' : false; F.type = 'all'; F.q = ''; }
+    if (opts && opts.create) { F.sel = null; F.edit = 'new'; F.type = opts.create; F.q = ''; }
     var wrap = h('div', { class: 'files' + (F.sel || F.edit ? ' show-detail' : '') });
     var listPane = h('section', { class: 'list-pane' });
     var detailPane = h('section', { class: 'detail-pane' });
@@ -149,7 +150,7 @@
         return;
       }
       var t = R.type(e.type);
-      var doc2 = h('article', { class: 'dossier view-in' });
+      var doc2 = h('article', { class: 'dossier view-in cls-' + e.clearance, 'data-stamp': R.CLEAR[e.clearance].code });
       doc2.appendChild(back);
       doc2.appendChild(h('div', { class: 'dz-head' },
         thumb(e, 'portrait'),
@@ -183,7 +184,7 @@
             h('button', { class: 'go', type: 'button', onclick: function () { F.sel = o.id; draw(); } },
               h('span', { class: 'ln-rel' }, (l.a === e.id ? '→ ' : '← ') + (l.label || '관계')), h('span', { class: 'ln-name' }, o.name), h('span', { class: 'ln-id' }, R.code(o))),
             h('button', { class: 'x', type: 'button', title: '연결 삭제', 'aria-label': '연결 삭제', onclick: function () {
-              db().links = db().links.filter(function (x) { return x.id !== l.id; }); touch(); draw();
+              db().links = db().links.filter(function (x) { return x.id !== l.id; }); R.log('DATA', '관계 해제 ' + R.code(e) + ' — ' + R.code(o)); touch(); draw();
             } }, 'X'));
         })) : h('p', { style: { color: 'var(--muted)', margin: 0 } }, '연결된 파일이 없습니다.')));
 
@@ -205,7 +206,7 @@
         d.entities = d.entities.filter(function (x) { return x.id !== e.id; });
         d.links = d.links.filter(function (l) { return l.a !== e.id && l.b !== e.id; });
         d.events.forEach(function (v) { v.entities = v.entities.filter(function (id) { return id !== e.id; }); });
-        F.sel = null; touch(); draw(); R.toast('삭제했습니다');
+        R.log('DATA', '파일 삭제 ' + R.code(e) + ' ' + e.name); F.sel = null; touch(); draw(); R.toast('삭제했습니다');
       });
     }
 
@@ -264,6 +265,7 @@
         out.fields = R.$$('.kv', kvList).map(function (r) { var i = r.querySelectorAll('input'); return { k: i[0].value.trim(), v: i[1].value.trim() }; }).filter(function (f) { return f.k || f.v; });
         out.image = m.image;
         if (isNew) db().entities.push(out);
+        R.log('DATA', (isNew ? '파일 등록 ' : '파일 수정 ') + R.code(out) + ' ' + out.name);
         touch(out);
         F.sel = out.id; F.edit = false; draw();
         R.toast(isNew ? R.code(out) + ' 등록 완료' : '저장했습니다');
@@ -307,6 +309,7 @@
         if (!target) { R.toast('대상을 선택하십시오'); return false; }
         var a = dir.value === 'out' ? e.id : target, b = dir.value === 'out' ? target : e.id;
         db().links.push({ id: R.uid(), a: a, b: b, label: rel.value.trim() });
+        R.log('DATA', '관계 연결 ' + R.code(byId(a)) + ' → ' + R.code(byId(b)) + (rel.value.trim() ? ' [' + rel.value.trim() + ']' : ''));
         touch(); c(); after(); R.toast('관계를 연결했습니다');
       } }
     ]);
@@ -354,7 +357,6 @@
       });
     }
     drawList();
-    var style = document.createElement('style'); style.textContent = '.tl-list.no-line::before{display:none}'; scroll.appendChild(style);
   };
 
   function eventDialog(v, after) {
@@ -380,7 +382,7 @@
     var btns = [{ label: '취소', cls: 'ghost', run: function (c) { c(); } }];
     if (!isNew) btns.unshift({ label: '삭제', cls: 'danger', run: function (c) {
       c(); ui.confirm('사건 삭제', '"' + v.title + '" 사건을 삭제합니다.', '삭제', true).then(function (ok) {
-        if (!ok) return; R.store.db.events = db().events.filter(function (x) { return x.id !== v.id; }); touch(); after();
+        if (!ok) return; R.store.db.events = db().events.filter(function (x) { return x.id !== v.id; }); R.log('DATA', '사건 삭제 ' + v.title); touch(); after();
       });
     } });
     btns.push({ label: isNew ? '추가' : '저장', cls: 'primary', run: function (c) {
@@ -389,6 +391,7 @@
       out.date = fDate.value.trim(); out.title = title; out.desc = fDesc.value.trim(); out.major = fMajor.checked;
       out.entities = db().entities.filter(function (e) { return chosen[e.id]; }).map(function (e) { return e.id; });
       if (isNew) db().events.push(out);
+      R.log('DATA', (isNew ? '사건 기록 ' : '사건 수정 ') + (out.date ? out.date + ' ' : '') + out.title);
       touch(); c(); after();
     } });
     ui.open(isNew ? '사건 추가' : '사건 편집', [
@@ -413,7 +416,7 @@
       [[0, '사용 안 함'], [3, '3분'], [5, '5분'], [10, '10분'], [30, '30분']].map(function (o) {
         var op = h('option', { value: o[0] }, o[1]); if (d.settings.autoLock === o[0]) op.selected = true; return op;
       }));
-    auto.addEventListener('change', function () { d.settings.autoLock = +auto.value; touch(); R.resetIdle(); R.toast('자동 잠금: ' + auto.selectedOptions[0].textContent); });
+    auto.addEventListener('change', function () { d.settings.autoLock = +auto.value; R.log('SEC', '자동 잠금 설정: ' + auto.selectedOptions[0].textContent); touch(); R.resetIdle(); R.toast('자동 잠금: ' + auto.selectedOptions[0].textContent); });
 
     inner.appendChild(h('section', { class: 'panel' }, h('h3', null, '접속 코드'),
       h('p', null, '모든 기록은 접속 코드로 암호화(AES-256-GCM)되어 이 PC에만 저장됩니다. 코드를 잊으면 복구할 수 없습니다.'),
@@ -433,8 +436,10 @@
         h('button', { class: 'btn', type: 'button', onclick: function () { R.sample(); R.go('security'); R.toast('예시 기록을 추가했습니다'); } }, '예시 기록 추가'),
         h('button', { class: 'btn danger', type: 'button', onclick: wipe }, '모든 기록 삭제'))));
 
-    inner.appendChild(h('p', { class: 'hint' }, 'R.S.S. v' + (R.version || '1.0.0') + ' · 글꼴: Galmuri (SIL OFL 1.1)'));
+    inner.appendChild(h('p', { class: 'hint' }, 'R.S.S. v' + R.version + ' · 글꼴: Pretendard, D2Coding, Galmuri(접속 코드 숫자) — SIL OFL 1.1'));
   };
+
+  R.actions = { changeCode: changeCode, exportEnc: exportEnc, exportPlain: exportPlain, importBackup: importBackup };
 
   function stamp() { var d = new Date(), p = function (n) { return String(n).padStart(2, '0'); }; return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()); }
 
@@ -455,7 +460,7 @@
         msg.textContent = '확인 중...';
         R.store.load().then(function (env) { return R.crypto.keyFor(cur.value, env).then(function (k) { return R.crypto.open(k, env); }); })
           .then(function () { return R.store.rekey(n1.value); })
-          .then(function () { c(); R.toast('접속 코드를 변경했습니다'); }, function () { msg.textContent = '현재 코드가 맞지 않습니다.'; });
+          .then(function () { c(); R.log('SEC', '접속 코드 변경 · 보관소 재암호화'); R.toast('접속 코드를 변경했습니다'); }, function () { msg.textContent = '현재 코드가 맞지 않습니다.'; });
         return false;
       } }
     ]);
@@ -463,12 +468,12 @@
 
   function exportEnc() {
     R.crypto.seal(R.store.key, db()).then(function (text) { return R.bridge.saveBackup('rss-backup-' + stamp() + '.rssvault', text); })
-      .then(function (p) { if (p) R.toast('백업 저장 완료'); }, function (e) { R.toast('실패: ' + e.message); });
+      .then(function (p) { if (p) { R.log('SEC', '암호화 백업 내보내기'); R.toast('백업 저장 완료'); } }, function (e) { R.toast('실패: ' + e.message); });
   }
   function exportPlain() {
     ui.confirm('일반 JSON 내보내기', '암호화되지 않은 파일로 저장합니다. 극비 기록까지 그대로 읽을 수 있습니다.', '내보내기').then(function (ok) {
       if (!ok) return;
-      R.bridge.saveBackup('rss-export-' + stamp() + '.json', JSON.stringify(db(), null, 2)).then(function (p) { if (p) R.toast('내보내기 완료'); });
+      R.bridge.saveBackup('rss-export-' + stamp() + '.json', JSON.stringify(db(), null, 2)).then(function (p) { if (p) { R.log('WARN', '비암호화 JSON 내보내기'); R.toast('내보내기 완료'); } });
     });
   }
   function importBackup() {
@@ -484,7 +489,7 @@
         var norm = R.normalize(data);
         return ui.confirm('백업 가져오기', '파일 ' + norm.entities.length + ' · 관계 ' + norm.links.length + ' · 사건 ' + norm.events.length + '건. 현재 기록을 이 백업으로 교체합니다.', '교체', true).then(function (ok) {
           if (!ok) return;
-          R.store.db = norm; R.store.save(); R.go('files'); R.toast('백업을 불러왔습니다');
+          norm.logs = db().logs; R.store.db = norm; R.log('SEC', '백업 가져오기 · 파일 ' + norm.entities.length + '건'); R.go('files'); R.toast('백업을 불러왔습니다');
         });
       }).catch(function (e) { R.toast(e.message); });
     });
@@ -492,7 +497,7 @@
   function wipe() {
     ui.confirm('모든 기록 삭제', '파일 · 관계 · 사건이 모두 삭제됩니다. 접속 코드는 유지됩니다.', '삭제', true).then(function (ok) {
       if (!ok) return;
-      var s = db().settings; R.store.db = R.emptyDB(); R.store.db.settings = s; R.store.save(); R.go('security'); R.toast('삭제했습니다');
+      var s = db().settings, lg = db().logs; R.store.db = R.emptyDB(); R.store.db.settings = s; R.store.db.logs = lg; R.log('WARN', '모든 기록 삭제'); R.go('security'); R.toast('삭제했습니다');
     });
   }
 
@@ -511,6 +516,6 @@
     d.events.push({ id: R.uid(), date: '2024-03-11', title: 'KESTREL 귀환', desc: '북부 국경 검문소 통과.', major: false, entities: [a.id] },
       { id: R.uid(), date: '2024-03-14', title: '항만 7번 창고 접촉', desc: '미확인 인물과 약 4분간 접촉.', major: true, entities: [a.id, c.id, dPl.id] },
       { id: R.uid(), date: '2024-03-20', title: '북부 지부 감시 작전 승인', desc: '', major: false, entities: [b.id, c.id] });
-    void e; touch();
+    void e; R.log('DATA', '예시 기록 5건 생성'); touch();
   };
 })();

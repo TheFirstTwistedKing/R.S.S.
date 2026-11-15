@@ -1,28 +1,42 @@
-/* 앱 진입점: 인트로 → 메인, 화면 전환, 잠금, 자동 잠금, 효과음 토글 */
+/* 앱 진입점: 인트로 → 메인(터미널 + 로그), 모듈 창, 잠금, 자동 잠금, 효과음 토글 */
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '1.0.0';
-  var NAMES = { files: ['01', '파일'], graph: ['02', '관계도'], timeline: ['03', '타임라인'], security: ['04', '보안·백업'] };
-  var current = null, destroy = null;
+  R.version = '2.0.0';
+  var MODS = { files: ['MOD-01', '파일 열람 · 편집'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
+  var destroy = null;
 
+  /* 모듈 창 열기 (터미널 명령이나 모듈 안 링크에서 호출) */
   R.go = function (name, opts) {
-    if (!R.store.db) return;
+    if (!R.store.db || !MODS[name]) return;
     if (destroy) { try { destroy(); } catch (e) {} destroy = null; }
     var view = $('#view'); view.innerHTML = '';
-    current = name;
-    R.$$('.nav').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-view') === name); });
-    $('#crumbK').textContent = NAMES[name][0]; $('#crumbT').textContent = NAMES[name][1];
+    $('#modK').textContent = MODS[name][0]; $('#modT').textContent = MODS[name][1];
+    var m = $('#module'), was = !m.hidden;
+    m.hidden = false;
+    R.fx.radar(false); // 모듈이 화면을 덮는 동안 뒤의 레이더는 정지
+    if (!was) { var w = m.querySelector('.mod-win'); w.style.animation = 'none'; void w.offsetWidth; w.style.animation = ''; }
     var r = R.views[name](view, opts || {});
     if (typeof r === 'function') destroy = r;
+    R.sound.nav();
   };
+  function closeModule() {
+    var m = $('#module'); if (m.hidden) return;
+    if (destroy) { try { destroy(); } catch (e) {} destroy = null; }
+    m.hidden = true; $('#view').innerHTML = '';
+    R.fx.radar(true);
+    R.term.focus();
+  }
+  R.closeModule = closeModule;
 
   function lock() {
     if ($('#app').hidden) return;
-    if (destroy) { try { destroy(); } catch (e) {} destroy = null; }
-    var m = $('#modal'); m.hidden = true; m.innerHTML = '';
+    closeModule();
+    var md = $('#modal'); md.hidden = true; md.innerHTML = '';
+    R.log('SEC', '세션 잠금 · ' + R.sessionId);
+    R.fx.radar(false);
     R.store.lock().then(function () {
-      $('#view').innerHTML = '';
+      $('#termOut').innerHTML = ''; $('#logList').innerHTML = '';
       $('#app').hidden = true;
       R.intro.show(enter);
     });
@@ -30,9 +44,17 @@
   R.lock = lock;
 
   function enter() {
-    $('#app').hidden = false;
-    R.go(current || 'files');
+    R.sessionId = 'S-' + Array.from(crypto.getRandomValues(new Uint8Array(3))).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').toUpperCase();
+    R.sessionStart = Date.now();
+    $('#sessId').textContent = R.sessionId;
+    var app = $('#app');
+    app.hidden = false; app.classList.remove('on'); void app.offsetWidth; app.classList.add('on');
+    setTimeout(function () { app.classList.remove('on'); }, 1400);
+    R.logwin.render();
+    R.term.boot();
+    R.fx.radar(true);
     R.resetIdle();
+    setTimeout(R.term.focus, 300);
   }
 
   /* 자동 잠금 */
@@ -40,7 +62,7 @@
   R.resetIdle = function () {
     clearTimeout(idleT);
     var min = R.store.db && R.store.db.settings.autoLock;
-    if (min > 0) idleT = setTimeout(lock, min * 60000);
+    if (min > 0) idleT = setTimeout(function () { R.log('SEC', '자동 잠금 (' + min + '분 무입력)'); lock(); }, min * 60000);
   };
   ['pointerdown', 'keydown', 'wheel'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!$('#app').hidden) R.resetIdle(); }, { passive: true });
@@ -54,22 +76,25 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    $('#railEmblem').innerHTML = window.RSSEmblem.svg({ cell: 2 });
-    R.$$('.nav').forEach(function (b) {
-      b.addEventListener('click', function () { R.sound.nav(); R.go(b.getAttribute('data-view')); });
-    });
-    $('#soundBtn').addEventListener('click', function () { R.sound.set(!R.sound.on); drawSound(); R.sound.key(); });
+    if (window.rss && window.rss.platform === 'win32') document.body.classList.add('win32');
+    $('#topEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
+    $('#soundBtn').addEventListener('click', function () { R.sound.set(!R.sound.on); drawSound(); R.sound.key(); R.term.focus(); });
     $('#lockBtn').addEventListener('click', lock);
+    $('#modX').addEventListener('click', closeModule);
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); lock(); }
+      if (e.key === 'Escape' && $('#modal').hidden && !$('#module').hidden) closeModule();
     });
     if (window.rss && window.rss.onFlush) window.rss.onFlush(function () { return R.store.dirty ? R.store.flush() : null; });
     window.addEventListener('beforeunload', function () { if (R.store.dirty) R.store.flush(); });
     drawSound();
+    R.fx.clock();
     R.intro.init();
+    R.term.init();
+    R.logwin.init();
     var go = function () { R.intro.show(enter); };
     if (document.fonts && document.fonts.load) {
-      Promise.all(['11px G11', '11px G11B', '14px G14', '11px GM11'].map(function (f) { return document.fonts.load(f); })).then(go, go);
+      Promise.all(['400 14px Pretendard', '800 14px Pretendard', '14px D2Coding', '700 14px D2Coding', '22px PixelCode'].map(function (f) { return document.fonts.load(f, f.indexOf('Pixel') >= 0 ? '0123456789*' : 'Aa가'); })).then(go, go);
     } else go();
   });
 })();

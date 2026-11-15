@@ -2,34 +2,34 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$, h = R.h;
-  var MIN = 4, MAX = 8, MAX_FAIL = 5;
+  var MIN = 4, MAX = 8, MAX_FAIL = 5, SHOW_MS = 650;
 
-  var el = {}, st = { mode: 'unlock', buf: '', first: '', fails: 0, busy: false, lockUntil: 0, envelope: null, done: null, typing: 0 };
+  var el = {}, st = { mode: 'unlock', buf: '', shown: -1, first: '', fails: 0, total: 0, busy: false, lockUntil: 0, envelope: null, done: null, typing: 0, hideT: 0 };
 
   function buildKeypad() {
     var pad = el.keypad; pad.innerHTML = '';
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9'].forEach(function (d) {
-      pad.appendChild(h('button', { class: 'key', 'data-k': d, type: 'button', 'aria-label': d }, d));
-    });
+    '123456789'.split('').forEach(function (d) { pad.appendChild(h('button', { class: 'key', 'data-k': d, type: 'button' }, d)); });
     pad.appendChild(h('button', { class: 'key fn', 'data-k': 'clr', type: 'button' }, 'CLR'));
-    pad.appendChild(h('button', { class: 'key', 'data-k': '0', type: 'button', 'aria-label': '0' }, '0'));
-    pad.appendChild(h('button', { class: 'key fn', 'data-k': 'del', type: 'button', 'aria-label': '지우기' }, 'DEL'));
-    var ok = h('button', { class: 'key ok', 'data-k': 'ok', type: 'button', style: { gridColumn: '1 / -1' } }, 'ENTER');
-    pad.appendChild(ok);
-    pad.addEventListener('click', function (e) {
-      var b = e.target.closest('.key'); if (b) press(b.getAttribute('data-k'));
-    });
+    pad.appendChild(h('button', { class: 'key', 'data-k': '0', type: 'button' }, '0'));
+    pad.appendChild(h('button', { class: 'key fn', 'data-k': 'del', type: 'button', 'aria-label': '한 칸 지우기' }, 'DEL'));
+    pad.appendChild(h('button', { class: 'key ok', 'data-k': 'ok', type: 'button' }, 'AUTHENTICATE'));
+    pad.addEventListener('click', function (e) { var b = e.target.closest('.key'); if (b) press(b.getAttribute('data-k')); });
   }
 
-  function renderSlots() {
+  /* 입력란: 방금 누른 숫자만 잠깐 픽셀 숫자로 보이고 곧 * 로 가려짐 */
+  function renderSlots(pop) {
     var html = '';
     for (var i = 0; i < MAX; i++) {
-      var cls = i < st.buf.length ? 'on' : (i === st.buf.length ? 'cur' : '');
-      if (i >= MIN && i >= st.buf.length + 1) cls += ' off';
-      html += '<div class="slot ' + cls + '"></div>';
+      var has = i < st.buf.length;
+      var cls = has ? 'on' : (i === st.buf.length ? 'cur' : '');
+      if (!has && i >= MIN && i > st.buf.length) cls += ' off';
+      if (pop && i === st.buf.length - 1) cls += ' pop';
+      var ch = has ? (i === st.shown ? st.buf[i] : '*') : '';
+      html += '<div class="slot ' + cls + '">' + ch + '</div>';
     }
     el.slots.innerHTML = html;
     el.count.textContent = st.buf.length + '/' + MAX;
+    el.bar.style.width = (st.buf.length / MAX * 100) + '%';
   }
 
   function say(text, deny) {
@@ -42,25 +42,28 @@
       i = Math.min(text.length, i + 1);
       el.status.innerHTML = R.esc(text.slice(0, i)) + '<span class="caret"></span>';
       if (i % 2 === 0) R.sound.tick();
-      if (i < text.length) setTimeout(step, 28);
+      if (i < text.length) setTimeout(step, 24);
     })();
   }
 
   function flashKey(k) {
     var b = el.keypad.querySelector('[data-k="' + k + '"]');
     if (!b) return;
-    b.classList.add('hit'); setTimeout(function () { b.classList.remove('hit'); }, 90);
+    b.classList.add('hit'); setTimeout(function () { b.classList.remove('hit'); }, 110);
   }
 
   function press(k) {
-    if (st.busy || st.mode === 'broken') return;
-    if (Date.now() < st.lockUntil) return;
+    if (st.busy || st.mode === 'broken' || Date.now() < st.lockUntil) return;
     flashKey(k);
     if (/^\d$/.test(k)) {
       if (st.buf.length >= MAX) return;
-      st.buf += k; R.sound.key();
-    } else if (k === 'del') { st.buf = st.buf.slice(0, -1); R.sound.key(); }
-    else if (k === 'clr') { st.buf = ''; R.sound.key(); }
+      st.buf += k; st.shown = st.buf.length - 1; R.sound.key();
+      clearTimeout(st.hideT);
+      st.hideT = setTimeout(function () { st.shown = -1; renderSlots(); }, SHOW_MS);
+      renderSlots(true); return;
+    }
+    if (k === 'del') { st.buf = st.buf.slice(0, -1); st.shown = -1; R.sound.key(); }
+    else if (k === 'clr') { st.buf = ''; st.shown = -1; R.sound.key(); }
     else if (k === 'ok') { submit(); return; }
     renderSlots();
   }
@@ -71,34 +74,29 @@
   }
 
   function setMode(mode) {
-    st.mode = mode; st.buf = ''; renderSlots();
-    el.mode.textContent = mode === 'unlock' ? 'ACCESS CODE' : (mode === 'create1' ? 'NEW CODE' : 'CONFIRM CODE');
+    st.mode = mode; st.buf = ''; st.shown = -1; renderSlots();
+    el.mode.textContent = mode === 'unlock' ? 'ACCESS CODE' : (mode === 'create1' ? 'NEW ACCESS CODE' : 'CONFIRM CODE');
   }
 
   function submit() {
     if (st.buf.length < MIN) { shake(); say('코드는 ' + MIN + '~' + MAX + '자리 숫자입니다.', true); return; }
-    if (st.mode === 'create1') {
-      st.first = st.buf; setMode('create2');
-      say('확인을 위해 같은 코드를 한 번 더 입력하십시오.');
-      return;
-    }
+    if (st.mode === 'create1') { st.first = st.buf; setMode('create2'); say('확인을 위해 같은 코드를 한 번 더 입력하십시오.'); return; }
     if (st.mode === 'create2') {
       if (st.buf !== st.first) { shake(); setMode('create1'); say('코드 불일치. 처음부터 다시 설정하십시오.', true); return; }
-      busy(true); say('보관소 생성 중 · 암호화 키 생성');
-      R.store.create(st.buf).then(grant, function (e) { busy(false); say('생성 실패: ' + e.message, true); });
+      busy(true); say('보관소 생성 중 · 암호화 키 파생');
+      R.store.create(st.buf).then(function () { R.log('SEC', '신규 보관소 생성 · 접속 코드 등록'); grant(); }, function (e) { busy(false); say('생성 실패: ' + e.message, true); });
       return;
     }
-    var code = st.buf;
     busy(true); say('VERIFYING · 신원 대조 중');
-    R.store.unlock(code, st.envelope).then(grant, function () {
-      busy(false); st.fails++; setMode('unlock'); shake();
+    R.store.unlock(st.buf, st.envelope).then(grant, function () {
+      busy(false); st.fails++; st.total++; setMode('unlock'); shake();
+      R.log('WARN', '접속 거부 · 코드 불일치');
       if (st.fails >= MAX_FAIL) {
         var wait = 30 * Math.pow(2, st.fails - MAX_FAIL);
         st.lockUntil = Date.now() + wait * 1000;
+        R.log('SEC', '연속 실패 ' + st.fails + '회 · 입력 ' + wait + '초 차단');
         countdown();
-      } else {
-        say('ACCESS DENIED · 코드 불일치 (' + st.fails + '/' + MAX_FAIL + ')', true);
-      }
+      } else say('ACCESS DENIED · 코드 불일치 (' + st.fails + '/' + MAX_FAIL + ')', true);
       if (st.fails >= 3) showForgot();
     });
   }
@@ -106,9 +104,9 @@
   function countdown() {
     var left = Math.ceil((st.lockUntil - Date.now()) / 1000);
     el.keypad.classList.toggle('busy', left > 0);
-    if (left <= 0) { say('잠금 해제. 접속 코드를 입력하십시오.'); return; }
+    if (left <= 0) { say('차단 해제. 접속 코드를 입력하십시오.'); return; }
     el.status.classList.add('deny');
-    el.status.innerHTML = R.esc('입력 제한 · ' + left + '초 후 재시도') + '<span class="caret"></span>';
+    el.status.innerHTML = R.esc('LOCKOUT · ' + left + '초 후 재시도') + '<span class="caret"></span>';
     setTimeout(countdown, 1000);
   }
 
@@ -117,30 +115,33 @@
   function showForgot() {
     if (el.foot.querySelector('.btn')) return;
     el.foot.innerHTML = '';
-    el.foot.appendChild(h('span', null, '코드를 잊으면 기록은 복구할 수 없습니다. '));
-    el.foot.appendChild(h('br'));
+    el.foot.appendChild(h('div', null, '코드를 잊으면 기록은 복구할 수 없습니다.'));
     el.foot.appendChild(h('button', { class: 'btn danger', type: 'button', style: { marginTop: '8px' }, onclick: wipeAsk }, '보관소 초기화'));
   }
 
   function wipeAsk() {
-    R.ui.confirm('보관소 초기화', '저장된 모든 기록이 영구 삭제되고 새 코드를 설정합니다. 백업 파일이 있다면 이후 보안·백업 메뉴에서 가져올 수 있습니다.', '초기화', true).then(function (ok) {
+    R.ui.confirm('보관소 초기화', '저장된 모든 기록이 영구 삭제되고 새 코드를 설정합니다. 백업 파일이 있다면 이후 터미널에서 import 명령으로 가져올 수 있습니다.', '초기화', true).then(function (ok) {
       if (!ok) return;
-      R.bridge.wipeVault().then(function () { st.fails = 0; st.envelope = null; el.foot.textContent = ''; firstRun(); });
+      R.bridge.wipeVault().then(function () { st.fails = 0; st.envelope = null; el.foot.textContent = ''; R.log('WARN', '보관소 초기화 실행'); firstRun(); });
     });
   }
 
   function firstRun() {
     setMode('create1');
+    $('#hudVault').textContent = 'NOT FOUND';
     say('신규 단말 감지. 접속 코드 ' + MIN + '~' + MAX + '자리를 설정하십시오.');
     el.foot.textContent = '이 코드로 모든 기록이 암호화됩니다. 분실 시 복구 불가.';
   }
 
   function grant() {
     busy(true);
-    st.fails = 0;
-    // 슬롯을 한 칸씩 채우며 승인 표시
+    var failed = st.total;
+    st.fails = 0; st.total = 0; st.shown = -1;
+    R.flushPendingLogs();
+    R.log('SEC', 'ACCESS GRANTED · 보관소 개방' + (failed ? ' · 직전 실패 ' + failed + '회' : ''));
     var slots = R.$$('.slot', el.slots);
-    slots.forEach(function (s, i) { setTimeout(function () { s.className = 'slot on'; }, i * 35); });
+    slots.forEach(function (s, i) { setTimeout(function () { s.className = 'slot on'; s.textContent = '*'; }, i * 40); });
+    $('#hudVault').textContent = 'UNSEALED';
     say('ACCESS GRANTED · 보관소 개방');
     R.sound.grant();
     setTimeout(function () {
@@ -148,11 +149,12 @@
       setTimeout(function () {
         el.root.hidden = true;
         el.root.classList.remove('out', 'boot');
+        R.fx.globe(false);
         busy(false);
         var cb = st.done; st.done = null;
         if (cb) cb();
-      }, 520);
-    }, 900);
+      }, 560);
+    }, 950);
   }
 
   function onKey(e) {
@@ -166,19 +168,23 @@
   R.intro = {
     init: function () {
       el.root = $('#intro'); el.keypad = $('#keypad'); el.slots = $('#codeSlots'); el.status = $('#lockStatus');
-      el.count = $('#codeCount'); el.mode = $('#codeMode'); el.box = $('.code-box'); el.foot = $('#lockFoot');
-      $('#introEmblem').innerHTML = window.RSSEmblem.svg({ cell: 6 });
+      el.count = $('#codeCount'); el.mode = $('#codeMode'); el.box = $('.code-box'); el.foot = $('#lockFoot'); el.bar = $('#codeBar');
+      $('#introEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
+      // 주사선이 문장 모양 안에서만 빛나도록 마스크 지정
+      var mask = window.RSSEmblem.svg({ mode: 'solid', color: '#000', ink: '#000' });
+      $('#introEmblem').style.setProperty('--em-mask', 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(mask) + '")');
       buildKeypad();
+      R.fx.hex();
       document.addEventListener('keydown', onKey);
     },
     /* 인트로를 처음부터 재생하고 잠금 해제되면 done 호출 */
     show: function (done) {
-      st.done = done; st.buf = ''; st.first = ''; busy(false);
+      st.done = done; st.buf = ''; st.first = ''; st.shown = -1; busy(false);
       el.root.hidden = false;
-      el.root.classList.remove('out');
-      el.root.classList.remove('boot'); void el.root.offsetWidth; el.root.classList.add('boot');
-      el.status.innerHTML = '';
-      el.foot.textContent = '키보드 숫자키 입력 가능 · ENTER 확인';
+      el.root.classList.remove('out', 'boot'); void el.root.offsetWidth; el.root.classList.add('boot');
+      el.status.innerHTML = ''; el.foot.textContent = '';
+      $('#hudVault').textContent = 'SEALED';
+      R.fx.globe(true);
       renderSlots();
       busy(true);
       R.store.load().then(function (env) {
@@ -186,16 +192,16 @@
           busy(false);
           if (!env) { st.envelope = null; firstRun(); return; }
           if (env.broken || !env.ct || !env.salt || !env.iv) {
-            st.mode = 'broken';
+            st.mode = 'broken'; $('#hudVault').textContent = 'CORRUPTED';
             say('보관소 파일 손상 감지. 초기화가 필요합니다.', true);
-            el.foot.innerHTML = ''; showForgot();
-            return;
+            showForgot(); return;
           }
           st.envelope = env; setMode('unlock');
           if (Date.now() < st.lockUntil) { countdown(); return; }
           say('요원 식별 대기. 접속 코드를 입력하십시오.');
+          el.foot.textContent = '숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움';
           if (st.fails >= 3) showForgot();
-        }, 1100); // 문장이 펼쳐진 뒤 안내 시작
+        }, 1200);
       });
     }
   };

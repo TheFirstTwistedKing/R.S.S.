@@ -105,7 +105,7 @@
 
   /* ── 데이터 모델 ── */
   R.emptyDB = function () {
-    return { schema: 1, seq: 0, entities: [], links: [], events: [], settings: { autoLock: 10 } };
+    return { schema: 1, seq: 0, entities: [], links: [], events: [], logs: [], settings: { autoLock: 10 } };
   };
   R.normalize = function (d) {
     if (!d || typeof d !== 'object' || !Array.isArray(d.entities)) throw new Error('형식이 올바르지 않습니다');
@@ -131,9 +131,25 @@
       return { id: String(v.id || R.uid()), date: String(v.date || ''), title: String(v.title || '제목 없음'), desc: String(v.desc || ''),
         major: !!v.major, entities: (Array.isArray(v.entities) ? v.entities : []).map(String).filter(function (id) { return ids[id]; }) };
     });
+    db.logs = (Array.isArray(d.logs) ? d.logs : []).filter(function (x) { return x && x.t && x.m; }).slice(-LOG_MAX)
+      .map(function (x) { return { t: +x.t, l: ['SEC', 'DATA', 'SYS', 'WARN'].indexOf(x.l) >= 0 ? x.l : 'SYS', m: String(x.m) }; });
     if (d.settings && typeof d.settings.autoLock === 'number') db.settings.autoLock = Math.max(0, Math.min(120, d.settings.autoLock));
     return db;
   };
+
+  /* ── 시스템 로그: 보관소 안에 암호화되어 함께 저장. 잠긴 동안 생긴 기록(접속 실패 등)은 대기열에 두었다가 해제 후 기록 ── */
+  var LOG_MAX = 400, pendingLogs = [], logListeners = [];
+  R.log = function (level, msg) {
+    var x = { t: Date.now(), l: level, m: msg };
+    var db = R.store && R.store.db;
+    if (!db) { pendingLogs.push(x); return; }
+    db.logs.push(x);
+    if (db.logs.length > LOG_MAX) db.logs.splice(0, db.logs.length - LOG_MAX);
+    logListeners.forEach(function (fn) { fn(x); });
+    R.store.save();
+  };
+  R.onLog = function (fn) { logListeners.push(fn); };
+  R.flushPendingLogs = function () { var q = pendingLogs; pendingLogs = []; q.forEach(function (x) { R.log(x.l, x.m); }); };
 
   R.code = function (e) { return R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
 
@@ -191,6 +207,9 @@
       } catch (e) { /* 소리 실패는 무시 */ }
     },
     key: function () { this.beep(1320, 0.04); },
+    type: (function () { var last = 0; return function () { var n = performance.now(); if (n - last < 45) return; last = n; this.beep(2600 + Math.random() * 400, 0.01, 0.008); }; })(),
+    out: function () { this.beep(1760, 0.02, 0.012); },
+    err: function () { this.beep(220, 0.12, 0.04); },
     tick: function () { this.beep(2200, 0.012, 0.012); },
     deny: function () { this.beep(150, 0.18, 0.05); this.beep(120, 0.22, 0.05, 0.16); },
     grant: function () { var s = this; [660, 880, 1320].forEach(function (f, i) { s.beep(f, 0.07, 0.03, i * 0.08); }); },

@@ -6,21 +6,16 @@ const path = require('path');
 const E = require('../src/js/emblem.js');
 
 const OUT = path.join(__dirname, '..', 'build');
-const BG = '#0A0B0C';
+const BG = '#07080A';
 
 function tileSvg(size) {
-  const px = E.build();
   const small = size <= 32;
-  const pts = small ? px.filter(p => p.part === 'shield') : px;
-  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const gw = maxX - minX + 1, gh = maxY - minY + 1;
-  const inner = Math.round(size * (small ? 0.94 : 0.9));
-  const cell = Math.max(1, Math.floor(inner / Math.max(gw, gh)));
-  const ox = Math.floor((size - gw * cell) / 2), oy = Math.floor((size - gh * cell) / 2);
-  const rects = pts.map(p => `<rect x="${ox + (p.x - minX) * cell}" y="${oy + (p.y - minY) * cell}" width="${cell}" height="${cell}" fill="${E.COLORS[p.c]}"/>`).join('');
-  const r = Math.round(size * 0.14);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" rx="${r}" fill="${BG}" shape-rendering="geometricPrecision"/>${rects}</svg>`;
+  // 작은 크기는 방패만, 큰 크기는 날개 포함 (벡터, 픽셀 아님)
+  const vb = small ? '-42 -39 84 84' : '-110 -130 220 220';
+  const r = Math.round(size * 0.18);
+  const em = E.svg({ mode: 'solid', color: '#FFB020', ink: BG, viewBox: vb, attrs: ` width="${size}" height="${size}"` });
+  const inner = small ? em.replace(/<path d="M[^"]*" fill="#FFB020"\/>/g, (m) => m.includes('M-25,-34') ? m : '') : em;
+  return `<div style="width:${size}px;height:${size}px;border-radius:${r}px;background:radial-gradient(circle at 50% 42%, #1A1408, ${BG} 70%);overflow:hidden;box-shadow:inset 0 0 0 ${Math.max(1, Math.round(size / 64))}px rgba(255,176,32,.45)">${inner}</div>`;
 }
 
 (async () => {
