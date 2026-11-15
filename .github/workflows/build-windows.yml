@@ -16,13 +16,24 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
+    # 저장소 이름이 점(.)으로 끝나 Windows 기본 작업 폴더를 만들 수 없으므로 C:\rss 에서 빌드
+    defaults:
+      run:
+        working-directory: C:\rss
     steps:
-      - uses: actions/checkout@v4
+      - name: 소스 받기
+        working-directory: C:\
+        shell: bash
+        run: |
+          git init -q /c/rss
+          cd /c/rss
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: 의존성 설치
         run: npm ci
@@ -41,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RSS-windows-${{ steps.ver.outputs.version }}
-          path: dist/*.exe
+          path: C:\rss\dist\*.exe
           if-no-files-found: error
 
       - name: GitHub Releases 업로드
@@ -52,7 +63,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           overwrite_files: true
-          files: dist/*.exe
+          files: C:/rss/dist/*.exe
           body: |
             ## 다운로드
             - **RSS-Setup-${{ steps.ver.outputs.version }}.exe** — 설치형 (바탕화면·시작 메뉴 아이콘 생성)
