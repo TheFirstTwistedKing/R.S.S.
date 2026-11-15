@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'">
+<title>R.S.S.</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="titlebar"><span class="tb-mark">R.S.S.</span><span class="tb-sep">//</span><span class="tb-txt">ARCHIVE TERMINAL</span></div>
+
+<!-- 인트로: 실행할 때마다, 잠금 해제할 때마다 다시 나옴 -->
+<section id="intro" class="intro" aria-label="접속 인증">
+  <div class="lock">
+    <div class="emblem" id="introEmblem" aria-hidden="true"></div>
+    <h1 class="brand">R.S.S.</h1>
+    <p class="brand-sub">ARCHIVE ACCESS TERMINAL</p>
+    <p class="lock-status" id="lockStatus" aria-live="polite"></p>
+    <div class="code-box">
+      <div class="code-label"><span id="codeMode">ACCESS CODE</span><span id="codeCount">0/8</span></div>
+      <div class="code-slots" id="codeSlots"></div>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <p class="lock-foot" id="lockFoot">키보드 숫자키 입력 가능 · ENTER 확인</p>
+  </div>
+</section>
+
+<div id="app" class="app" hidden>
+  <nav class="rail" aria-label="메뉴">
+    <div class="rail-emblem" id="railEmblem" aria-hidden="true"></div>
+    <button class="nav" data-view="files"><span class="nav-k">01</span><span class="nav-t">파일</span></button>
+    <button class="nav" data-view="graph"><span class="nav-k">02</span><span class="nav-t">관계도</span></button>
+    <button class="nav" data-view="timeline"><span class="nav-k">03</span><span class="nav-t">타임라인</span></button>
+    <button class="nav" data-view="security"><span class="nav-k">04</span><span class="nav-t">보안·백업</span></button>
+  </nav>
+  <header class="topbar">
+    <div class="crumb"><span class="crumb-k" id="crumbK">01</span><span id="crumbT">파일</span></div>
+    <div class="top-actions">
+      <button class="chip" id="soundBtn" aria-pressed="false" title="효과음">SOUND <b>OFF</b></button>
+      <button class="chip chip-accent" id="lockBtn" title="잠그기">LOCK</button>
+    </div>
+  </header>
+  <main id="view" class="view"></main>
+</div>
+
+<div id="modal" class="modal" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="js/emblem.js"></script>
+<script src="js/core.js"></script>
+<script src="js/intro.js"></script>
+<script src="js/views.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+/* 공용: DOM 도우미, 암호화, 저장소, 효과음 */
+(function () {
+  'use strict';
+  var R = window.RSS = {};
+
+  /* ── DOM ── */
+  R.$ = function (s, el) { return (el || document).querySelector(s); };
+  R.$$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  R.h = function (tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+    for (var i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  };
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) c.forEach(function (x) { add(el, x); });
+    else el.appendChild(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  R.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  R.uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); };
+  R.debounce = function (fn, ms) { var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); }; };
+
+  R.toast = function (msg) {
+    var box = R.$('#toast'), t = R.h('div', { class: 't', text: msg });
+    box.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2600);
+  };
+
+  /* ── 유형 / 보안등급 ── */
+  R.TYPES = [
+    { id: 'character', code: 'CHR', name: '인물' },
+    { id: 'organization', code: 'ORG', name: '조직' },
+    { id: 'location', code: 'LOC', name: '장소' },
+    { id: 'item', code: 'ITM', name: '물품' },
+    { id: 'lore', code: 'LOR', name: '세계관' }
+  ];
+  R.type = function (id) { return R.TYPES.find(function (t) { return t.id === id; }) || R.TYPES[0]; };
+  R.CLEAR = [
+    { n: 0, name: '공개', code: 'UNCLASSIFIED' },
+    { n: 1, name: '대외비', code: 'RESTRICTED' },
+    { n: 2, name: '기밀', code: 'SECRET' },
+    { n: 3, name: '극비', code: 'TOP SECRET' }
+  ];
+  R.STATUS = ['활동', '잠적', '구금', '사망', '불명', '해당 없음'];
+
+  /* ── 암호화 (PBKDF2-SHA256 → AES-GCM 256) ── */
+  var ITER = 310000;
+  var enc = new TextEncoder(), dec = new TextDecoder();
+  function b64(buf) { var s = '', b = new Uint8Array(buf); for (var i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+  function unb64(s) { var bin = atob(s), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
+  function deriveKey(code, salt, iter) {
+    return crypto.subtle.importKey('raw', enc.encode('RSS::' + code), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+  R.crypto = {
+    newKey: function (code) {
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      return deriveKey(code, salt, ITER).then(function (key) { return { key: key, salt: salt, iter: ITER }; });
+    },
+    keyFor: function (code, envelope) { return deriveKey(code, unb64(envelope.salt), envelope.iter || ITER); },
+    seal: function (k, obj) {
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, k.key, enc.encode(JSON.stringify(obj))).then(function (ct) {
+        return JSON.stringify({ app: 'RSS', v: 1, kdf: 'PBKDF2-SHA256', iter: k.iter, salt: b64(k.salt), iv: b64(iv), ct: b64(ct) });
+      });
+    },
+    open: function (key, envelope) {
+      return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(envelope.iv) }, key, unb64(envelope.ct)).then(function (pt) { return JSON.parse(dec.decode(pt)); });
+    },
+    saltOf: function (envelope) { return unb64(envelope.salt); }
+  };
+
+  /* ── 디스크 접근: Electron preload 가 있으면 파일, 없으면(브라우저 미리보기) localStorage ── */
+  var bridge = window.rss || {
+    readVault: function () { try { return Promise.resolve(localStorage.getItem('rss-vault')); } catch (e) { return Promise.resolve(null); } },
+    writeVault: function (t) { try { localStorage.setItem('rss-vault', t); } catch (e) {} return Promise.resolve(true); },
+    wipeVault: function () { try { localStorage.removeItem('rss-vault'); } catch (e) {} return Promise.resolve(true); },
+    saveBackup: function (name, text) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = name; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      return Promise.resolve(name);
+    },
+    openBackup: function () {
+      return new Promise(function (res) {
+        var i = document.createElement('input'); i.type = 'file'; i.accept = '.rssvault,.json';
+        i.onchange = function () { var f = i.files[0]; if (!f) return res(null); f.text().then(res); };
+        i.click();
+      });
+    }
+  };
+  R.bridge = bridge;
+
+  /* ── 데이터 모델 ── */
+  R.emptyDB = function () {
+    return { schema: 1, seq: 0, entities: [], links: [], events: [], settings: { autoLock: 10 } };
+  };
+  R.normalize = function (d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.entities)) throw new Error('형식이 올바르지 않습니다');
+    var db = R.emptyDB();
+    db.seq = +d.seq || 0;
+    db.entities = d.entities.filter(function (e) { return e && e.id; }).map(function (e) {
+      return {
+        id: String(e.id), no: +e.no || ++db.seq, type: R.type(e.type).id,
+        name: String(e.name || '이름 없음'), alias: String(e.alias || ''),
+        clearance: Math.max(0, Math.min(3, +e.clearance || 0)), status: String(e.status || ''),
+        summary: String(e.summary || ''), body: String(e.body || ''),
+        tags: Array.isArray(e.tags) ? e.tags.map(String) : [],
+        fields: Array.isArray(e.fields) ? e.fields.filter(function (f) { return f && (f.k || f.v); }).map(function (f) { return { k: String(f.k || ''), v: String(f.v || '') }; }) : [],
+        image: typeof e.image === 'string' && e.image.indexOf('data:image/') === 0 ? e.image : '',
+        created: +e.created || Date.now(), updated: +e.updated || Date.now()
+      };
+    });
+    db.seq = Math.max(db.seq, db.entities.reduce(function (m, e) { return Math.max(m, e.no); }, 0));
+    var ids = {}; db.entities.forEach(function (e) { ids[e.id] = 1; });
+    db.links = (Array.isArray(d.links) ? d.links : []).filter(function (l) { return l && ids[l.a] && ids[l.b] && l.a !== l.b; })
+      .map(function (l) { return { id: String(l.id || R.uid()), a: String(l.a), b: String(l.b), label: String(l.label || '') }; });
+    db.events = (Array.isArray(d.events) ? d.events : []).filter(Boolean).map(function (v) {
+      return { id: String(v.id || R.uid()), date: String(v.date || ''), title: String(v.title || '제목 없음'), desc: String(v.desc || ''),
+        major: !!v.major, entities: (Array.isArray(v.entities) ? v.entities : []).map(String).filter(function (id) { return ids[id]; }) };
+    });
+    if (d.settings && typeof d.settings.autoLock === 'number') db.settings.autoLock = Math.max(0, Math.min(120, d.settings.autoLock));
+    return db;
+  };
+
+  R.code = function (e) { return R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
+
+  var store = R.store = { db: null, key: null, envelope: null, dirty: false };
+  store.load = function () {
+    return bridge.readVault().then(function (t) {
+      if (!t) return null;
+      try { return JSON.parse(t); } catch (e) { return { broken: true }; }
+    });
+  };
+  store.unlock = function (code, envelope) {
+    return R.crypto.keyFor(code, envelope).then(function (key) {
+      return R.crypto.open(key, envelope).then(function (data) {
+        store.key = { key: key, salt: R.crypto.saltOf(envelope), iter: envelope.iter };
+        store.db = R.normalize(data);
+        return store.db;
+      });
+    });
+  };
+  store.create = function (code) {
+    return R.crypto.newKey(code).then(function (k) { store.key = k; store.db = R.emptyDB(); return store.flush(); });
+  };
+  store.flush = function () {
+    if (!store.key || !store.db) return Promise.resolve();
+    store.dirty = false;
+    return R.crypto.seal(store.key, store.db).then(function (text) { return bridge.writeVault(text); })
+      .catch(function (e) { console.error(e); R.toast('저장 실패: ' + e.message); });
+  };
+  var later = R.debounce(store.flush, 400);
+  store.save = function () { store.dirty = true; later(); };
+  store.rekey = function (code) {
+    return R.crypto.newKey(code).then(function (k) { store.key = k; return store.flush(); });
+  };
+  store.lock = function () {
+    var p = store.dirty ? store.flush() : Promise.resolve();
+    return p.then(function () { store.key = null; store.db = null; });
+  };
+
+  /* ── 효과음: WebAudio 사각파 짧은 비프. 기본 꺼짐, 메인 화면 SOUND 버튼으로만 조절 ── */
+  var ctx = null;
+  R.sound = {
+    on: (function () { try { return localStorage.getItem('rss-sound') === '1'; } catch (e) { return false; } })(),
+    set: function (v) { this.on = v; try { localStorage.setItem('rss-sound', v ? '1' : '0'); } catch (e) {} },
+    beep: function (freq, dur, vol, when) {
+      if (!this.on) return;
+      try {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        var t = ctx.currentTime + (when || 0), o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'square'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(vol || 0.035, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + dur + 0.02);
+      } catch (e) { /* 소리 실패는 무시 */ }
+    },
+    key: function () { this.beep(1320, 0.04); },
+    tick: function () { this.beep(2200, 0.012, 0.012); },
+    deny: function () { this.beep(150, 0.18, 0.05); this.beep(120, 0.22, 0.05, 0.16); },
+    grant: function () { var s = this; [660, 880, 1320].forEach(function (f, i) { s.beep(f, 0.07, 0.03, i * 0.08); }); },
+    nav: function () { this.beep(880, 0.03, 0.02); }
+  };
+
+  /* ── 이미지: 정사각에 가깝게 잘라 작은 해상도로 줄여 저장(픽셀 느낌 + 용량 절약) ── */
+  R.shrinkImage = function (file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var W = 120, H = 146, r = Math.max(W / img.width, H / img.height);
+        var c = document.createElement('canvas'); c.width = W; c.height = H;
+        var g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+        var w = img.width * r, h = img.height * r;
+        g.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL('image/png'));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('이미지를 읽을 수 없습니다')); };
+      img.src = url;
+    });
+  };
+})();

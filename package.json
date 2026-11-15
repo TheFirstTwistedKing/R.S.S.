@@ -1,0 +1,52 @@
+{
+  "name": "rss-archive",
+  "productName": "R.S.S.",
+  "version": "1.0.0",
+  "description": "R.S.S. 정보국 기밀 기록 관리 앱",
+  "main": "main.js",
+  "author": "R.S.S.",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.js",
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "38.8.6",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "org.rss.archive",
+    "productName": "R.S.S.",
+    "copyright": "R.S.S.",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "R.S.S.",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "RSS-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "RSS-Portable-${version}.${ext}"
+    }
+  }
+}
