@@ -33,18 +33,15 @@
     el.bar.style.width = (st.buf.length / MAX * 100) + '%';
   }
 
+  /* 안내 문구: 빗금 막대 → 왼쪽부터 해독 (영상 방식) */
   function say(text, deny) {
-    var my = ++st.typing, i = 0;
+    var my = ++st.typing;
     el.status.classList.toggle('deny', !!deny);
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) { el.status.innerHTML = R.esc(text) + '<span class="caret"></span>'; return; }
-    (function step() {
-      if (my !== st.typing) return;
-      i = Math.min(text.length, i + 1);
-      el.status.innerHTML = R.esc(text.slice(0, i)) + '<span class="caret"></span>';
-      if (i % 2 === 0) R.sound.tick();
-      if (i < text.length) setTimeout(step, 24);
-    })();
+    el.status.innerHTML = '';
+    var t = h('span'), caret = h('span', { class: 'caret' });
+    el.status.appendChild(t); el.status.appendChild(caret);
+    R.decode(t, text, { speed: 20, cb: function () { if (my !== st.typing) return; } });
+    R.sound.tick();
   }
 
   function flashKey(k) {
@@ -56,16 +53,19 @@
   function press(k) {
     if (st.busy || st.mode === 'broken' || Date.now() < st.lockUntil) return;
     flashKey(k);
+    // 타자음은 실제로 숫자가 써지거나 지워질 때만 (가득 찼거나 비어 있으면 꾹 눌러도 무음)
     if (/^\d$/.test(k)) {
       if (st.buf.length >= MAX) return;
-      st.buf += k; st.shown = st.buf.length - 1; R.sound.key();
+      st.buf += k; st.shown = st.buf.length - 1; R.sound.stroke('key');
       clearTimeout(st.hideT);
       st.hideT = setTimeout(function () { st.shown = -1; renderSlots(); }, SHOW_MS);
       renderSlots(true); return;
     }
-    if (k === 'del') { st.buf = st.buf.slice(0, -1); st.shown = -1; R.sound.key(); }
-    else if (k === 'clr') { st.buf = ''; st.shown = -1; R.sound.key(); }
-    else if (k === 'ok') { submit(); return; }
+    if (k === 'del' || k === 'clr') {
+      if (!st.buf) return;
+      st.buf = k === 'del' ? st.buf.slice(0, -1) : ''; st.shown = -1; R.sound.stroke('key');
+    }
+    else if (k === 'ok') { if (st.buf) R.sound.stroke('enter'); submit(); return; }
     renderSlots();
   }
 
@@ -243,7 +243,7 @@
             }
             st.envelope = env; setMode('unlock');
             if (Date.now() < st.lockUntil) { countdown(); return; }
-            say('요원 식별 대기. 접속 코드를 입력하십시오.');
+            say('사용자 식별 대기. 접속 코드를 입력하십시오.');
             el.foot.textContent = '숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움';
             if (st.fails >= 3) showForgot();
           }, reduce ? 0 : 1100);

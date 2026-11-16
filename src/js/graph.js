@@ -49,6 +49,7 @@
       card.appendChild(h('div', { class: 'dz-id' }, h('span', null, R.code(e)), h('span', { class: 'clr c' + e.clearance }, R.CLEAR[e.clearance].code)));
       card.appendChild(h('h4', null, e.name));
       card.appendChild(h('p', null, e.summary || (e.alias || R.type(e.type).name)));
+      R.decodeTree(card, 'h4, p, .dz-id span', 50);
       card.appendChild(h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
         h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files', { select: e.id }); } }, '파일 열기'),
         h('button', { class: 'btn ghost', type: 'button', onclick: function () { sel = null; drawCard(); paint(); } }, '닫기')));

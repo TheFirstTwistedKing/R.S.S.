@@ -189,9 +189,10 @@
   };
 
   /* ── 효과음: WebAudio 사각파 짧은 비프. 기본 꺼짐, 메인 화면 SOUND 버튼으로만 조절 ── */
-  var ctx = null;
+  var ctx = null, noiseBuf = null, master = null;
   R.sound = {
-    on: (function () { try { return localStorage.getItem('rss-sound') === '1'; } catch (e) { return false; } })(),
+    // 기본값: 켜짐 (메인 화면 SOUND 버튼으로 끌 수 있고, 선택은 기억됨)
+    on: (function () { try { return localStorage.getItem('rss-sound') !== '0'; } catch (e) { return true; } })(),
     set: function (v) { this.on = v; try { localStorage.setItem('rss-sound', v ? '1' : '0'); } catch (e) {} },
     beep: function (freq, dur, vol, when) {
       if (!this.on) return;
@@ -206,7 +207,44 @@
         o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + dur + 0.02);
       } catch (e) { /* 소리 실패는 무시 */ }
     },
-    key: function () { this.beep(1320, 0.04); },
+    key: function () { this.stroke('key'); },
+    /* 타자음: 녹음 파일 없이 코드로 합성한 플라스틱 키보드 소리.
+       - 몸통: 대역 필터를 거친 잡음(낮은 '톡')  - 윗면: 높은 대역 잡음(딸깍)  - 바닥: 짧은 저음 사인파(무게감)
+       - 키를 뗄 때 나는 작은 플라스틱 반동음
+       누를 때마다 높낮이·세기를 조금씩 흔들어 기계음처럼 똑같이 들리지 않게 함 */
+    stroke: function (kind) {
+      if (!this.on) return;
+      try {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        if (!noiseBuf) {
+          noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+          var ch = noiseBuf.getChannelData(0);
+          for (var i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+          master = ctx.createGain(); master.gain.value = 0.55;
+          var comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
+          master.connect(comp); comp.connect(ctx.destination);
+        }
+        var t = ctx.currentTime + 0.002, v = 0.9 + Math.random() * 0.2;
+        var heavy = kind === 'enter' || kind === 'space';
+        var noise = function (type, freq, q, peak, decay, at) {
+          var src = ctx.createBufferSource(); src.buffer = noiseBuf;
+          src.playbackRate.value = 0.8 + Math.random() * 0.4;
+          var f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(peak, at + 0.0025); g.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+          src.connect(f); f.connect(g); g.connect(master);
+          src.start(at, Math.random() * 0.15); src.stop(at + decay + 0.02);
+        };
+        noise('bandpass', (heavy ? 330 : 560) * v, 1.3, heavy ? 0.9 : 0.75, heavy ? 0.085 : 0.06, t);   // 몸통
+        noise('highpass', 2600 * v, 0.8, heavy ? 0.16 : 0.22, 0.016, t);                                 // 윗면 딸깍
+        var o = ctx.createOscillator(), og = ctx.createGain();                                           // 바닥 저음
+        o.type = 'sine'; o.frequency.setValueAtTime((heavy ? 120 : 165) * v, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
+        og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(heavy ? 0.35 : 0.22, t + 0.003); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+        o.connect(og); og.connect(master); o.start(t); o.stop(t + 0.08);
+        noise('bandpass', 1500 * v, 2, 0.07, 0.02, t + 0.065 + Math.random() * 0.02);                  // 뗄 때 반동음
+      } catch (e) { /* 소리 실패는 무시 */ }
+    },
     type: (function () { var last = 0; return function () { var n = performance.now(); if (n - last < 45) return; last = n; this.beep(2600 + Math.random() * 400, 0.01, 0.008); }; })(),
     power: function () { this.beep(70, 0.35, 0.06); this.beep(140, 0.2, 0.025, 0.05); this.beep(3200, 0.25, 0.006, 0.12); },
     out: function () { this.beep(1760, 0.02, 0.012); },

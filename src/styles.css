@@ -435,3 +435,60 @@ body.electron .dragbar { pointer-events: auto; }
 @keyframes lock-in { from { opacity: 0; transform: translateY(8px); } }
 @media (max-width: 560px) { .post { left: 20px; top: 24px; font-size: 11px; } }
 .intro.boot .code-box.shake { animation: shake .4s cubic-bezier(.36, .07, .19, .97) 1; }
+
+/* ── 글자 해독 연출 ── */
+.dc-wait { color: transparent !important; text-shadow: none !important; background: repeating-linear-gradient(-45deg, rgba(255, 176, 32, .32) 0 2px, transparent 2px 6px); box-shadow: inset 0 0 0 1px rgba(255, 176, 32, .22); }
+.dc-tail { color: var(--accent); text-shadow: 0 0 6px rgba(255, 176, 32, .6); }
+
+/* ── 대화창 (터미널 모양) ── */
+.msg { margin: 0 0 var(--s4); max-width: 920px; }
+.msg-h { display: flex; align-items: center; gap: var(--s2); font: 700 10px/1 var(--f-mono); letter-spacing: .16em; margin-bottom: 6px; }
+.msg-h .who { padding: 3px 6px; }
+.msg-h .to { color: var(--faint); font-weight: 400; }
+.msg-h .ts { color: var(--faint); font-weight: 400; margin-left: auto; letter-spacing: .06em; }
+.msg-b { white-space: pre-wrap; word-break: break-word; font: 14px/1.7 var(--f-mono); }
+.msg-control .who { background: var(--accent); color: var(--accent-ink); }
+.msg-control .msg-b { color: var(--text); }
+.msg-apex .who { border: 1px solid var(--accent); color: var(--accent); padding: 2px 5px; }
+.msg-apex .msg-b { color: var(--accent-hi); }
+.msg-user .who { border: 1px solid var(--line-3); color: var(--muted); padding: 2px 5px; }
+.msg-user .msg-b { color: var(--text); }
+.msg-user .msg-b::before { content: '▸ '; color: var(--accent); }
+.msg-int { margin-left: var(--s6); padding-left: var(--s3); border-left: 1px dashed var(--line-3); opacity: .9; }
+.msg-int .msg-b { font-size: 13px; }
+.msg-int .msg-b::before { content: '// '; color: var(--faint); }
+.msg-pre { margin-top: var(--s2); padding: var(--s2) var(--s3); background: rgba(255, 176, 32, .04); border: 1px solid var(--line); font: 13px/1.65 var(--f-mono); white-space: pre; overflow-x: auto; color: var(--text); }
+.msg-pre .pl { min-height: 1.65em; }
+.msg-pre .hi { color: var(--accent); }
+.msg-pre .b { font-weight: 700; }
+.msg-pre .mut { color: var(--muted); }
+.msg-pre .dim { color: var(--faint); }
+.msg-pre .rule { color: var(--line-3); }
+.msg-typing { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s4); font: 700 10px/1 var(--f-mono); letter-spacing: .16em; color: var(--faint); }
+.msg-typing .who { padding: 3px 6px; border: 1px solid var(--line-2); color: var(--muted); }
+.msg-typing.msg-control .who { color: var(--accent); }
+.msg-typing.msg-apex { margin-left: var(--s6); }
+.msg-typing .dots { display: inline-flex; gap: 4px; }
+.msg-typing .dots i { width: 6px; height: 6px; background: var(--accent); opacity: .25; animation: dot 1.2s ease-in-out infinite; }
+.msg-typing .dots i:nth-child(2) { animation-delay: .2s; }
+.msg-typing .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 30% { opacity: 1; } 60% { opacity: .25; } }
+.term-in::placeholder { color: var(--faint); }
+@media (max-width: 560px) { .msg-int { margin-left: var(--s3); } .msg-b { font-size: 13px; } .msg-pre { font-size: 12px; } }
+
+/* ── 마우스 커서: 회전하는 주황 별 ── */
+html.has-cur, html.has-cur * { cursor: none !important; }
+.cur { position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none; width: 0; height: 0; will-change: transform; }
+.cur.off { opacity: 0; }
+.cur-rot {
+  position: absolute; width: 30px; height: 27.5px; left: -15.07px; top: -17.05px;
+  animation: cur-spin 3.2s linear infinite; filter: drop-shadow(0 0 3px rgba(255, 120, 20, .7)) drop-shadow(0 0 1px rgba(0, 0, 0, .9));
+  transition: width .15s, height .15s, left .15s, top .15s;
+}
+.cur-rot svg { width: 100%; height: 100%; display: block; fill: #FF8A1A; }
+.cur.hot .cur-rot { animation-duration: 1.1s; width: 38px; height: 34.8px; left: -19.1px; top: -21.6px; }
+.cur.text .cur-rot { animation-duration: 6s; width: 24px; height: 22px; left: -12.06px; top: -13.64px; }
+.cur.down .cur-rot { width: 24px; height: 22px; left: -12.06px; top: -13.64px; }
+@keyframes cur-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cur-rot { animation: cur-spin 12s linear infinite !important; } }
+.msg-typing .who, .msg-typing.msg-control .who { background: transparent; border: 1px solid var(--line-2); color: var(--accent); padding: 2px 5px; }
