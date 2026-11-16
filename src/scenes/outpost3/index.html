@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Outpost 3</title>
+<style>
+  @font-face { font-family: 'D2Coding'; src: url('../../fonts/D2Coding.woff2') format('woff2'); }
+  html, body { margin: 0; height: 100%; background: #dfe6ef; overflow: hidden; }
+  #stage { position: fixed; inset: 0; touch-action: none; }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  .tag {
+    position: fixed; left: 16px; bottom: 16px; padding: 8px 12px;
+    font: 12px/1.5 'D2Coding', monospace; letter-spacing: .08em; color: #1d222b;
+    background: rgba(243, 246, 251, .78); border-left: 3px solid #b5452c; pointer-events: none;
+  }
+  .tag b { display: block; font-size: 11px; letter-spacing: .2em; color: #b5452c; }
+  #fps { position: fixed; right: 16px; bottom: 16px; font: 11px/1 'D2Coding', monospace; color: #4b5563; pointer-events: none; }
+  @media (max-width: 560px) { .tag { font-size: 11px; left: 12px; right: 12px; bottom: 12px; } #fps { top: 12px; right: 12px; bottom: auto; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="tag"><b>VMK-CW-N03</b>버믹쿠루시아 › 천공월아 본부 › 북부 산골짜기 제 3초소</div>
+<div id="fps"></div>
+<script src="../../vendor/three/three.min.js"></script>
+<script src="../../vendor/three/OrbitControls.js"></script>
+<script src="../../vendor/three/OutlineEffect.js"></script>
+<script src="../../vendor/three/BufferGeometryUtils.js"></script>
+<script src="scene.js"></script>
+</body>
+</html>
