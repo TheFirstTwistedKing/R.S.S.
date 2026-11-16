@@ -45,6 +45,17 @@
     lock: '보관소를 잠급니다. 다시 뵙겠습니다.',
     backup: { out: '암호화 백업 파일을 저장합니다. 저장 위치를 골라 주십시오.', in: '백업 파일을 불러옵니다.', code: '접속 코드 변경 창을 엽니다.' },
     lang: { set: '언어를 한국어로 바꿨습니다.', apex: '출력 언어: 한국어.' },
+    // 시뮬레이션 (영상 신호는 들어오지 않는 설정)
+    sim: {
+      need: '어느 장소의 시뮬레이션을 띄울까요? 명령어와 장소를 함께 입력해 주십시오. 등록된 장소: {목록}',
+      unknown: '"{q}" 은(는) 등록된 장소가 아닙니다. 등록된 장소: {목록}',
+      many: '해당하는 장소가 여러 곳입니다: {목록}. 장소 이름까지 입력해 주십시오.',
+      toApex: ['Apex, {장소} 시뮬레이션 링크 연결.', 'Apex, {코드} 감시 화면 호출.'],
+      ack: '{코드} 링크 수립. 영상 신호 미수신. 화면 송출.',
+      user: ['{장소} 시뮬레이션을 띄웠습니다. 다만 신호가 들어오지 않습니다. (F4 전체화면)', '{장소} 화면을 오른쪽 위에 열었습니다. 현재 신호가 없습니다. (F4 전체화면)'],
+      closed: '시뮬레이션을 종료했습니다.',
+      notOpen: '켜져 있는 시뮬레이션이 없습니다.'
+    },
     // 작성 · 수정 · 삭제 · 관계 연결 · 사건 기록 요청 → 열람 전용 안내
     ro: {
       toApex: ['Apex, 아카이브 변경 요청 확인.', 'Apex, 쓰기 권한 조회.'],
@@ -64,6 +75,9 @@
       { t: '도움말 · help        명령어 목록' },
       { t: '아카이브 · archive    문서 아카이브 창 열기' },
       { t: 'msg                  메신저 창 열기' },
+      { t: '시뮬레이션 <장소>     감시 화면 열기 (예: 시뮬레이션 북부 산골짜기 제 3초소)' },
+      { t: '시뮬레이션 종료       감시 화면 닫기' },
+      { t: 'F11 · F4             완전 전체화면 · 시뮬레이션 전체화면' },
       { t: 'Eng / 한글           표시 언어 바꾸기' },
       { t: '잠금 · lock          보관소 잠그기' },
       { t: '관계도 · 타임라인 · 보안   각 창 열기 (열람)' },
@@ -118,6 +132,16 @@
     lock: 'Sealing the vault. See you soon.',
     backup: { out: 'Saving an encrypted backup. Choose a location.', in: 'Loading a backup file.', code: 'Opening the access code dialog.' },
     lang: { set: 'Language switched to English.', apex: 'Output language: English.' },
+    sim: {
+      need: 'Which location should I simulate? Type the command together with a place. Registered: {목록}',
+      unknown: '"{q}" is not a registered location. Registered: {목록}',
+      many: 'Several places match: {목록}. Please include the place name.',
+      toApex: ['Apex, open the simulation link for {장소}.', 'Apex, call up monitor {코드}.'],
+      ack: '{코드} link established. No video signal. Displaying.',
+      user: ['The {장소} simulation is up, but there is no signal. (F4 for full screen)', 'Opened {장소} in the top-right. No signal at the moment. (F4 for full screen)'],
+      closed: 'Simulation closed.',
+      notOpen: 'No simulation is running.'
+    },
     ro: {
       toApex: ['Apex, archive change requested.', 'Apex, check write permission.'],
       apex: ['No write permission. The archive is sealed read-only.', 'Denied. This terminal holds no record-change rights.'],
@@ -136,6 +160,9 @@
       { t: 'help · 도움말        list commands' },
       { t: 'archive · 아카이브    open the document archive' },
       { t: 'msg                  open the messenger' },
+      { t: 'simulation <place>   open a monitor (e.g. simulation 북부 산골짜기 제 3초소)' },
+      { t: 'simulation close     close the monitor' },
+      { t: 'F11 · F4             full screen · simulation full screen' },
       { t: 'Eng / 한글           switch language' },
       { t: 'lock · 잠금          seal the vault' },
       { t: 'graph · timeline · security   open those windows' },

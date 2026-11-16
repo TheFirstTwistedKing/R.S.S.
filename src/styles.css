@@ -593,3 +593,74 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   .logbar-h { padding: 0 var(--s3); }
   .logbar .lg { width: 230px; }
 }
+
+/* ══ 시뮬레이션 창: 오른쪽 위 1/4 크기 (가로 50% × 세로 50%) ══ */
+.sim {
+  --cc: var(--line-3);
+  position: fixed; z-index: 45; top: calc(var(--bn) + 10px); right: 10px;
+  width: calc(50vw - 15px); height: calc(50vh - 15px);
+  display: flex; flex-direction: column; min-width: 300px; min-height: 200px;
+  background: var(--cl) top right / 16px 16px no-repeat, var(--cl) bottom left / 16px 16px no-repeat, #070809;
+  border: 1px solid var(--line-3);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6);
+  transition: top .35s cubic-bezier(.2, .8, .2, 1), right .35s cubic-bezier(.2, .8, .2, 1), width .35s cubic-bezier(.2, .8, .2, 1), height .35s cubic-bezier(.2, .8, .2, 1);
+}
+.sim { --cl: linear-gradient(to top right, transparent calc(50% - 1px), var(--cc) calc(50% - 1px) 50%, transparent 50%); }
+.sim.full { top: var(--bn); right: 0; width: 100vw; height: calc(100vh - var(--bn)); clip-path: none; }
+.sim.opening { animation: rain-reveal .75s cubic-bezier(.3, .7, .2, 1) both; }
+.sim-h { gap: var(--s2); }
+.sim-h .win-t { font-family: var(--f-ui); letter-spacing: .02em; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-h .win-s { letter-spacing: .04em; }
+.sim-btn { flex: none; }
+.sim-feed { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #050505; }
+/* 화면이 켜지는 순간: 가운데 가로선 → 화면 전체 */
+.sim-feed > * { transform: scaleY(.004); opacity: 0; transform-origin: 50% 50%; }
+.sim.sim-live .sim-feed > * { animation: sim-on .6s cubic-bezier(.16, .84, .3, 1) forwards; }
+@keyframes sim-on {
+  0% { transform: scale(.2, .004); opacity: 1; filter: brightness(4); }
+  35% { transform: scale(1, .004); opacity: 1; filter: brightness(4); }
+  70% { transform: scale(1, 1.02); filter: brightness(1.6); }
+  100% { transform: scale(1, 1); opacity: 1; filter: none; }
+}
+.sim-noise { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: .55; }
+.sim-scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, .35) 2px 4px); }
+.sim-scan::after { content: ''; position: absolute; left: 0; right: 0; height: 30%; top: -30%; background: linear-gradient(to bottom, transparent, rgba(255, 190, 90, .07), transparent); animation: sim-roll 5s linear infinite; }
+@keyframes sim-roll { to { transform: translateY(440%); } }
+.sim-hud { position: absolute; inset: 0; pointer-events: none; font: 11px/1 var(--f-mono); letter-spacing: .12em; color: rgba(243, 232, 210, .75); }
+.sim-hud > span { position: absolute; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sim-hud .h-tl { top: 16px; left: 18px; }
+.sim-hud .h-tr { top: 16px; right: 18px; }
+.sim-hud .h-bl { bottom: 16px; left: 18px; letter-spacing: .04em; font-family: var(--f-ui); font-size: 12px; }
+.sim-hud .h-br { bottom: 16px; right: 18px; color: var(--accent); }
+.sim-rec { width: 8px; height: 8px; border-radius: 50%; background: #5a5a5a; }
+.sim-corners i { position: absolute; width: 22px; height: 22px; border: 0 solid rgba(255, 176, 32, .55); }
+.sim-corners i:nth-child(1) { top: 8px; left: 8px; border-left-width: 2px; border-top-width: 2px; }
+.sim-corners i:nth-child(2) { top: 8px; right: 8px; border-right-width: 2px; border-top-width: 2px; }
+.sim-corners i:nth-child(3) { bottom: 8px; left: 8px; border-left-width: 2px; border-bottom-width: 2px; }
+.sim-corners i:nth-child(4) { bottom: 8px; right: 8px; border-right-width: 2px; border-bottom-width: 2px; }
+.sim-nosig { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
+.sim-nosig b {
+  font: 800 clamp(28px, 5vw, 64px)/1 var(--f-ui); letter-spacing: .3em; padding: .3em .45em .3em .75em;
+  color: var(--text); background: rgba(5, 5, 5, .72); border: 1px solid rgba(243, 232, 210, .5);
+  text-shadow: 0 0 14px rgba(255, 190, 90, .35);
+  animation: nosig-pulse 2.4s ease-in-out infinite;
+}
+.sim.full .sim-nosig b { font-size: clamp(40px, 7vw, 110px); }
+@keyframes nosig-pulse { 50% { opacity: .62; } }
+.sim-nosig span { display: flex; align-items: baseline; gap: 6px; font: 12px/1 var(--f-mono); letter-spacing: .14em; color: rgba(243, 232, 210, .7); background: rgba(5, 5, 5, .6); padding: 6px 10px; }
+.sim-dots { display: inline-flex; gap: 3px; font-style: normal; }
+.sim-dots i { width: 4px; height: 4px; background: var(--accent); opacity: .25; animation: dot 1.2s ease-in-out infinite; }
+.sim-dots i:nth-child(2) { animation-delay: .2s; }
+.sim-dots i:nth-child(3) { animation-delay: .4s; }
+@media (max-width: 760px) {
+  .sim { left: 10px; right: 10px; width: auto; height: 40vh; min-width: 0; }
+  .sim.full { left: 0; right: 0; height: calc(100vh - var(--bn)); }
+  .sim-h .win-s { display: none; }
+  .sim-hud .h-bl { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sim-feed > * { transform: none; opacity: 1; } }
+
+/* F11 완전 전체화면일 때는 위쪽 창 버튼 자리를 비우지 않음 */
+body.electron.fs { --bn: 0px; }
+body.fs .dragbar { display: none; }
