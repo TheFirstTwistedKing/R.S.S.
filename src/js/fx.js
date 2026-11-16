@@ -104,68 +104,10 @@
     if (on && !globe.raf) { globe.t0 = globe.t0 || performance.now(); globe.raf = requestAnimationFrame(globeFrame); }
   };
 
-  /* ───────── 메인 로그 창: 보관소 레이더 (파일 = 표적) ───────── */
-  var radar = { cv: null, g: null, raf: 0, on: false, t0: 0, blips: [] };
-  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return (x >>> 0) / 4294967296; }
-  R.fx.radarData = function () {
-    var db = R.store.db; if (!db) return;
-    radar.blips = db.entities.map(function (e) {
-      return { a: hash(e.id) * Math.PI * 2, r: 0.25 + (3 - e.clearance) * 0.22 + hash(e.id + 'r') * 0.12, code: R.code(e), c: e.clearance, lit: 0 };
-    });
-    var info = document.getElementById('radarInfo');
-    if (info) info.textContent = radar.blips.length + ' TARGETS · ' + db.links.length + ' LINKS';
-  };
-  function radarFrame(now) {
-    if (!radar.on) { radar.raf = 0; return; }
-    radar.raf = requestAnimationFrame(radarFrame);
-    var cv = radar.cv, g = radar.g, s = fitCanvas(cv, 1.5);
-    if (s.w < 10) return;
-    var t = (now - radar.t0) / 1000;
-    g.setTransform(s.d, 0, 0, s.d, 0, 0);
-    g.clearRect(0, 0, s.w, s.h);
-    var cx = s.w * 0.62, cy = s.h / 2, Rr = Math.min(s.h * 0.44, s.w * 0.34);
-    g.strokeStyle = 'rgba(' + A + ',.18)'; g.lineWidth = 1;
-    for (var i = 1; i <= 4; i++) { g.beginPath(); g.arc(cx, cy, Rr * i / 4, 0, Math.PI * 2); g.stroke(); }
-    g.beginPath(); g.moveTo(cx - Rr, cy); g.lineTo(cx + Rr, cy); g.moveTo(cx, cy - Rr); g.lineTo(cx, cy + Rr); g.stroke();
-    var sweep = reduce ? 0 : (t * 1.1) % (Math.PI * 2);
-    if (g.createConicGradient) {
-      // 쓸고 지나간 자리의 잔광
-      var tg = g.createConicGradient(sweep - 0.9, cx, cy);
-      tg.addColorStop(0, 'rgba(' + A + ',0)'); tg.addColorStop(0.143, 'rgba(' + A + ',.22)'); tg.addColorStop(0.1431, 'rgba(' + A + ',0)'); tg.addColorStop(1, 'rgba(' + A + ',0)');
-      g.fillStyle = tg; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, Rr, 0, Math.PI * 2); g.fill();
-    }
-    g.strokeStyle = 'rgba(' + A + ',.9)'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(sweep) * Rr, cy + Math.sin(sweep) * Rr); g.stroke();
-    g.font = '9px D2Coding, monospace'; g.textBaseline = 'middle';
-    radar.blips.forEach(function (b) {
-      var d = (sweep - b.a + Math.PI * 4) % (Math.PI * 2);
-      if (d < 0.08) b.lit = 1; else b.lit = Math.max(0, b.lit - 0.012);
-      var x = cx + Math.cos(b.a) * b.r * Rr, y = cy + Math.sin(b.a) * b.r * Rr;
-      var al = 0.25 + b.lit * 0.75;
-      g.fillStyle = 'rgba(' + A + ',' + al + ')';
-      var sz = b.c === 3 ? 5 : 3.5;
-      g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
-      if (b.lit > 0.3) { g.fillStyle = 'rgba(243,232,210,' + (b.lit * 0.8) + ')'; g.fillText(b.code, x + 6, y); }
-    });
-    // 좌측 수치
-    g.fillStyle = 'rgba(166,155,132,.9)'; g.font = '10px D2Coding, monospace';
-    g.fillText('AZM ' + String(Math.round(sweep * 180 / Math.PI)).padStart(3, '0') + '°', 16, s.h - 34);
-    g.fillText('RNG 4 RINGS · C3 CORE', 16, s.h - 18);
-  }
-  R.fx.radar = function (on) {
-    radar.cv = radar.cv || document.getElementById('radar');
-    radar.g = radar.g || radar.cv.getContext('2d');
-    radar.on = on;
-    if (on) { R.fx.radarData(); if (!radar.raf) { radar.t0 = radar.t0 || performance.now(); radar.raf = requestAnimationFrame(radarFrame); } }
-  };
-
-  /* 창이 최소화되거나 가려지면 모든 그리기 정지 */
+  /* 창이 최소화되거나 가려지면 지구본 그리기 정지 */
   document.addEventListener('visibilitychange', function () {
-    var hidden = document.hidden;
-    if (hidden) { cancelAnimationFrame(globe.raf); globe.raf = 0; cancelAnimationFrame(radar.raf); radar.raf = 0; }
-    else {
-      if (globe.on && !globe.raf) globe.raf = requestAnimationFrame(globeFrame);
-      if (radar.on && !radar.raf) radar.raf = requestAnimationFrame(radarFrame);
-    }
+    if (document.hidden) { cancelAnimationFrame(globe.raf); globe.raf = 0; }
+    else if (globe.on && !globe.raf) globe.raf = requestAnimationFrame(globeFrame);
   });
 
   /* 데이터 스트림 (장식용 16진수 열) */

@@ -6,7 +6,8 @@
   var CX = 150.7, CY = 170.5;   // 별 무게중심 = 회전축 = 클릭 지점
 
   var el = document.createElement('div');
-  el.className = 'cur';
+  el.className = 'cur off';
+  el.style.transform = 'translate3d(-100px,-100px,0)';
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = '<div class="cur-rot" style="transform-origin:' + (CX / S.w * 100) + '% ' + (CY / S.h * 100) + '%">' +
     '<svg viewBox="0 0 ' + S.w + ' ' + S.h + '"><path fill-rule="evenodd" d="' + S.d + '"/></svg></div>';
