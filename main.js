@@ -2,8 +2,44 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const dgram = require('dgram');
+const os = require('os');
 
 const VAULT_NAME = 'rss-vault.json';
+
+/* ── 메신저: 같은 네트워크(같은 공유기 · 와이파이)의 R.S.S. 끼리 UDP 방송으로 주고받음. 서버 없음.
+   내용은 렌더러에서 채널 코드로 암호화한 뒤 넘어오므로 여기서는 글자를 볼 수 없음 ── */
+const MSG_PORT = 47811;
+let msgSock = null;
+function broadcastTargets() {
+  const out = new Set(['255.255.255.255']);
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const a of list || []) {
+      if (a.family !== 'IPv4' && a.family !== 4) continue;
+      if (a.internal) { out.add('127.255.255.255'); continue; }
+      const ip = a.address.split('.').map(Number), mask = a.netmask.split('.').map(Number);
+      out.add(ip.map((b, i) => (b & mask[i]) | (~mask[i] & 255)).join('.'));
+    }
+  }
+  return [...out];
+}
+ipcMain.handle('net:start', () => new Promise((resolve, reject) => {
+  if (msgSock) return resolve(true);
+  const s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+  s.on('message', (buf, rinfo) => {
+    if (buf.length > 64000) return;
+    if (win && !win.isDestroyed()) win.webContents.send('net:packet', buf.toString('utf8'), rinfo.address);
+  });
+  s.once('error', (e) => { try { s.close(); } catch (_) {} msgSock = null; reject(e); });
+  s.bind(MSG_PORT, () => { s.setBroadcast(true); msgSock = s; resolve(true); });
+}));
+ipcMain.handle('net:send', (_e, text) => {
+  if (!msgSock || typeof text !== 'string' || text.length > 60000) return false;
+  const buf = Buffer.from(text, 'utf8');
+  for (const t of broadcastTargets()) msgSock.send(buf, MSG_PORT, t, () => {});
+  return true;
+});
+ipcMain.handle('net:stop', () => { if (msgSock) { try { msgSock.close(); } catch (_) {} msgSock = null; } return true; });
 const vaultPath = () => path.join(app.getPath('userData'), VAULT_NAME);
 
 let win = null;

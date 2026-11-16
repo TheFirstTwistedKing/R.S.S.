@@ -221,3 +221,32 @@
 .deny-bar { height: 14px; margin: var(--s6) 0; background: repeating-linear-gradient(-45deg, var(--accent) 0 8px, transparent 8px 16px); opacity: .55; }
 @keyframes deny-in { 0% { opacity: 0; transform: translateX(-6px); } 50% { opacity: 1; } 60% { opacity: .5; } 100% { opacity: 1; transform: none; } }
 @media (max-width: 560px) { .deny-title { font-size: 36px; } }
+
+/* ── 메신저 ── */
+.msgr { position: absolute; inset: 0; display: flex; }
+.msg-setup { margin: auto; width: min(460px, calc(100% - 32px)); display: flex; flex-direction: column; gap: var(--s4); padding: var(--s6) 0; }
+.msg-intro h3 { margin: 0 0 var(--s2); font: 800 26px/1.2 var(--f-ui); color: var(--accent); letter-spacing: .02em; }
+.msg-intro p { margin: 0; color: var(--muted); }
+.msg-room { flex: 1; display: grid; grid-template-columns: 220px 1fr; min-height: 0; }
+.msg-side { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s4); border-right: 1px solid var(--line-2); min-height: 0; }
+.msg-count { font: 11px/1 var(--f-mono); color: var(--muted); margin-bottom: var(--s2); }
+.msg-peers { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.mp { display: flex; align-items: center; gap: var(--s2); font: 13px/1.3 var(--f-mono); color: var(--text); }
+.mp i { width: 7px; height: 7px; background: var(--accent); box-shadow: var(--glow); }
+.mp.me { color: var(--accent); }
+.msg-main { display: flex; flex-direction: column; min-height: 0; }
+.msg-log { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s4) var(--s6); font: 14px/1.7 var(--f-mono); user-select: text; }
+.mm { display: flex; gap: var(--s3); align-items: baseline; margin-bottom: 6px; }
+.mm-ts { color: var(--faint); font-size: 11px; flex: none; }
+.mm-who { flex: none; color: var(--accent); }
+.mm-me .mm-who { color: var(--muted); }
+.mm-t { white-space: pre-wrap; word-break: break-word; }
+.mm-sys .mm-t { color: var(--faint); font-size: 12px; }
+.msg-line { display: flex; gap: var(--s2); align-items: center; padding: var(--s3) var(--s6) var(--s4); border-top: 1px dashed var(--line); }
+@media (max-width: 760px) {
+  .msg-room { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .msg-side { border-right: 0; border-bottom: 1px solid var(--line-2); flex-direction: row; flex-wrap: wrap; align-items: center; padding: var(--s3); }
+  .msg-peers { flex-direction: row; flex-wrap: wrap; }
+  .msg-log { padding: var(--s3); }
+  .msg-line { padding: var(--s2) var(--s3) var(--s3); }
+}

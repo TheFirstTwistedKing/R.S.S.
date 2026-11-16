@@ -11,7 +11,7 @@
     '123456789'.split('').forEach(function (d) { pad.appendChild(h('button', { class: 'key', 'data-k': d, type: 'button' }, d)); });
     pad.appendChild(h('button', { class: 'key fn', 'data-k': 'clr', type: 'button' }, 'CLR'));
     pad.appendChild(h('button', { class: 'key', 'data-k': '0', type: 'button' }, '0'));
-    pad.appendChild(h('button', { class: 'key fn', 'data-k': 'del', type: 'button', 'aria-label': '한 칸 지우기' }, 'DEL'));
+    pad.appendChild(h('button', { class: 'key fn', 'data-k': 'del', type: 'button', 'aria-label': R.T('한 칸 지우기', 'Delete one') }, 'DEL'));
     pad.appendChild(h('button', { class: 'key ok', 'data-k': 'ok', type: 'button' }, 'AUTHENTICATE'));
     R.$$('.key', pad).forEach(function (k, i) { k.style.setProperty('--k', i); });
     pad.addEventListener('click', function (e) { var b = e.target.closest('.key'); if (b) press(b.getAttribute('data-k')); });
@@ -80,24 +80,24 @@
   }
 
   function submit() {
-    if (st.buf.length < MIN) { shake(); say('코드는 ' + MIN + '~' + MAX + '자리 숫자입니다.', true); return; }
-    if (st.mode === 'create1') { st.first = st.buf; setMode('create2'); say('확인을 위해 같은 코드를 한 번 더 입력하십시오.'); return; }
+    if (st.buf.length < MIN) { shake(); say(R.T('코드는 ', 'Code must be ') + MIN + '~' + MAX + R.T('자리 숫자입니다.', ' digits.'), true); return; }
+    if (st.mode === 'create1') { st.first = st.buf; setMode('create2'); say(R.T('확인을 위해 같은 코드를 한 번 더 입력하십시오.', 'Enter the same code once more to confirm.')); return; }
     if (st.mode === 'create2') {
-      if (st.buf !== st.first) { shake(); setMode('create1'); say('코드 불일치. 처음부터 다시 설정하십시오.', true); return; }
-      busy(true); say('보관소 생성 중 · 암호화 키 파생');
-      R.store.create(st.buf).then(function () { R.log('SEC', '신규 보관소 생성 · 접속 코드 등록'); grant(); }, function (e) { busy(false); say('생성 실패: ' + e.message, true); });
+      if (st.buf !== st.first) { shake(); setMode('create1'); say(R.T('코드 불일치. 처음부터 다시 설정하십시오.', 'Codes differ. Start over.'), true); return; }
+      busy(true); say(R.T('보관소 생성 중 · 암호화 키 파생', 'Creating vault · deriving key'));
+      R.store.create(st.buf).then(function () { R.log('SEC', R.T('신규 보관소 생성 · 접속 코드 등록', 'New vault created · access code set')); grant(); }, function (e) { busy(false); say(R.T('생성 실패: ', 'Creation failed: ') + e.message, true); });
       return;
     }
-    busy(true); say('VERIFYING · 신원 대조 중');
+    busy(true); say(R.T('VERIFYING · 신원 대조 중', 'VERIFYING · checking identity'));
     R.store.unlock(st.buf, st.envelope).then(grant, function () {
       busy(false); st.fails++; st.total++; setMode('unlock'); shake();
-      R.log('WARN', '접속 거부 · 코드 불일치');
+      R.log('WARN', R.T('접속 거부 · 코드 불일치', 'Access denied · wrong code'));
       if (st.fails >= MAX_FAIL) {
         var wait = 30 * Math.pow(2, st.fails - MAX_FAIL);
         st.lockUntil = Date.now() + wait * 1000;
-        R.log('SEC', '연속 실패 ' + st.fails + '회 · 입력 ' + wait + '초 차단');
+        R.log('SEC', R.T('연속 실패 ', 'Failed ') + st.fails + R.T('회 · 입력 ', ' times · input blocked ') + wait + R.T('초 차단', ' s'));
         countdown();
-      } else say('ACCESS DENIED · 코드 불일치 (' + st.fails + '/' + MAX_FAIL + ')', true);
+      } else say(R.T('ACCESS DENIED · 코드 불일치 (', 'ACCESS DENIED · wrong code (') + st.fails + '/' + MAX_FAIL + ')', true);
       if (st.fails >= 3) showForgot();
     });
   }
@@ -105,9 +105,9 @@
   function countdown() {
     var left = Math.ceil((st.lockUntil - Date.now()) / 1000);
     el.keypad.classList.toggle('busy', left > 0);
-    if (left <= 0) { say('차단 해제. 접속 코드를 입력하십시오.'); return; }
+    if (left <= 0) { say(R.T('차단 해제. 접속 코드를 입력하십시오.', 'Unblocked. Enter the access code.')); return; }
     el.status.classList.add('deny');
-    el.status.innerHTML = R.esc('LOCKOUT · ' + left + '초 후 재시도') + '<span class="caret"></span>';
+    el.status.innerHTML = R.esc('LOCKOUT · ' + left + R.T('초 후 재시도', ' s until retry')) + '<span class="caret"></span>';
     setTimeout(countdown, 1000);
   }
 
@@ -116,22 +116,22 @@
   function showForgot() {
     if (el.foot.querySelector('.btn')) return;
     el.foot.innerHTML = '';
-    el.foot.appendChild(h('div', null, '코드를 잊으면 기록은 복구할 수 없습니다.'));
-    el.foot.appendChild(h('button', { class: 'btn danger', type: 'button', style: { marginTop: '8px' }, onclick: wipeAsk }, '보관소 초기화'));
+    el.foot.appendChild(h('div', null, R.T('코드를 잊으면 기록은 복구할 수 없습니다.', 'A forgotten code means the records cannot be recovered.')));
+    el.foot.appendChild(h('button', { class: 'btn danger', type: 'button', style: { marginTop: '8px' }, onclick: wipeAsk }, R.T('보관소 초기화', 'Reset vault')));
   }
 
   function wipeAsk() {
-    R.ui.confirm('보관소 초기화', '저장된 모든 기록이 영구 삭제되고 새 코드를 설정합니다. 백업 파일이 있다면 이후 터미널에서 import 명령으로 가져올 수 있습니다.', '초기화', true).then(function (ok) {
+    R.ui.confirm(R.T('보관소 초기화', 'Reset vault'), R.T('저장된 모든 기록이 영구 삭제되고 새 코드를 설정합니다. 백업 파일이 있다면 이후 Control 에게 백업 불러오기를 요청하십시오.', 'All stored records will be permanently deleted and you will set a new code. If you have a backup, ask Control to restore it afterwards.'), R.T('초기화', 'Reset'), true).then(function (ok) {
       if (!ok) return;
-      R.bridge.wipeVault().then(function () { st.fails = 0; st.envelope = null; el.foot.textContent = ''; R.log('WARN', '보관소 초기화 실행'); firstRun(); });
+      R.bridge.wipeVault().then(function () { st.fails = 0; st.envelope = null; el.foot.textContent = ''; R.log('WARN', R.T('보관소 초기화 실행', 'Vault reset')); firstRun(); });
     });
   }
 
   function firstRun() {
     setMode('create1');
     $('#hudVault').textContent = 'NOT FOUND';
-    say('신규 단말 감지. 접속 코드 ' + MIN + '~' + MAX + '자리를 설정하십시오.');
-    el.foot.textContent = '이 코드로 모든 기록이 암호화됩니다. 분실 시 복구 불가.';
+    say(R.T('신규 단말 감지. 접속 코드 ', 'New terminal detected. Set an access code of ') + MIN + '~' + MAX + R.T('자리를 설정하십시오.', ' digits.'));
+    el.foot.textContent = R.T('이 코드로 모든 기록이 암호화됩니다. 분실 시 복구 불가.', 'Every record is encrypted with this code. It cannot be recovered if lost.');
   }
 
   function grant() {
@@ -139,11 +139,11 @@
     var failed = st.total;
     st.fails = 0; st.total = 0; st.shown = -1;
     R.flushPendingLogs();
-    R.log('SEC', 'ACCESS GRANTED · 보관소 개방' + (failed ? ' · 직전 실패 ' + failed + '회' : ''));
+    R.log('SEC', R.T('ACCESS GRANTED · 보관소 개방', 'ACCESS GRANTED · vault open') + (failed ? R.T(' · 직전 실패 ', ' · prior failures ') + failed + R.T('회', '') : ''));
     var slots = R.$$('.slot', el.slots);
     slots.forEach(function (s, i) { setTimeout(function () { s.className = 'slot on'; s.textContent = '*'; }, i * 40); });
     $('#hudVault').textContent = 'UNSEALED';
-    say('ACCESS GRANTED · 보관소 개방');
+    say(R.T('ACCESS GRANTED · 보관소 개방', 'ACCESS GRANTED · vault open'));
     R.sound.grant();
     setTimeout(function () {
       el.root.classList.add('out');
@@ -207,7 +207,7 @@
         ['MEMORY TEST ........... ', 'OK'],
         ['CRYPTO MODULE ......... ', 'AES-256-GCM READY'],
         ['KEY DERIVATION ........ ', 'PBKDF2-SHA256'],
-        ['STORAGE ............... ', 'LOCAL · OFFLINE'],
+        ['STORAGE ............... ', 'LOCAL · ENCRYPTED'],
         ['PROJECTION ............ ', 'ONLINE']
       ];
       lines.forEach(function (l, i) {
@@ -238,13 +238,13 @@
             if (!env) { st.envelope = null; firstRun(); return; }
             if (env.broken || !env.ct || !env.salt || !env.iv) {
               st.mode = 'broken'; $('#hudVault').textContent = 'CORRUPTED';
-              say('보관소 파일 손상 감지. 초기화가 필요합니다.', true);
+              say(R.T('보관소 파일 손상 감지. 초기화가 필요합니다.', 'Vault file damaged. A reset is required.'), true);
               showForgot(); return;
             }
             st.envelope = env; setMode('unlock');
             if (Date.now() < st.lockUntil) { countdown(); return; }
-            say('사용자 식별 대기. 접속 코드를 입력하십시오.');
-            el.foot.textContent = '숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움';
+            say(R.T('사용자 식별 대기. 접속 코드를 입력하십시오.', 'Awaiting user identification. Enter the access code.'));
+            el.foot.textContent = R.T('숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움', 'Number keys work · ENTER to authenticate · ESC to clear');
             if (st.fails >= 3) showForgot();
           }, reduce ? 0 : 1100);
         });

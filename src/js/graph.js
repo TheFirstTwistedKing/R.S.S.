@@ -10,7 +10,7 @@
   R.views.graph = function (root, opts) {
     var db = R.store.db;
     var wrap = h('div', { class: 'graph' });
-    var cv = h('canvas', { 'aria-label': '관계도' });
+    var cv = h('canvas', { 'aria-label': R.T('관계도', 'Relation graph') });
     wrap.appendChild(cv); root.appendChild(wrap);
     var g = cv.getContext('2d');
 
@@ -29,16 +29,16 @@
     /* 상단 도구 / 범례 / 선택 카드 */
     var card = h('div', { class: 'g-card', hidden: true });
     wrap.appendChild(h('div', { class: 'g-tools' },
-      h('button', { class: 'btn', type: 'button', onclick: function () { fit(); } }, '화면 맞춤'),
-      h('button', { class: 'btn', type: 'button', onclick: function () { nodes.forEach(function (n) { n.x += (Math.random() - .5) * 200; n.y += (Math.random() - .5) * 200; }); heat(1); } }, '재배치')));
+      h('button', { class: 'btn', type: 'button', onclick: function () { fit(); } }, R.T('화면 맞춤', 'Fit view')),
+      h('button', { class: 'btn', type: 'button', onclick: function () { nodes.forEach(function (n) { n.x += (Math.random() - .5) * 200; n.y += (Math.random() - .5) * 200; }); heat(1); } }, R.T('재배치', 'Shuffle'))));
     wrap.appendChild(h('div', { class: 'g-legend' }, R.TYPES.map(function (t) { return h('span', null, SHAPE[t.id] + ' ' + t.name); }),
-      h('span', { style: { color: C.accent } }, '■ 극비')));
+      h('span', { style: { color: C.accent } }, R.T('■ 극비', '■ Top secret'))));
     wrap.appendChild(card);
 
     if (!nodes.length) {
       wrap.appendChild(h('div', { class: 'empty', style: { position: 'absolute', left: '16px', right: '16px', top: '64px', maxWidth: '520px' } },
-        h('h3', null, '표시할 파일이 없습니다'), h('p', null, '파일을 등록하고 [+ 관계 연결]로 이으면 이곳에 관계망이 그려집니다.'),
-        h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files'); } }, '파일로 이동')));
+        h('h3', null, R.T('표시할 파일이 없습니다', 'Nothing to show')), h('p', null, R.T('파일을 등록하고 [+ 관계 연결]로 이으면 이곳에 관계망이 그려집니다.', 'File documents and link them; the network appears here.')),
+        h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files'); } }, R.T('파일로 이동', 'Go to archive'))));
     }
 
     function drawCard() {
@@ -51,8 +51,8 @@
       card.appendChild(h('p', null, e.summary || (e.alias || R.type(e.type).name)));
       R.decodeTree(card, 'h4, p, .dz-id span', 50);
       card.appendChild(h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-        h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files', { select: e.id }); } }, '파일 열기'),
-        h('button', { class: 'btn ghost', type: 'button', onclick: function () { sel = null; drawCard(); paint(); } }, '닫기')));
+        h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files', { select: e.id }); } }, R.T('파일 열기', 'Open document')),
+        h('button', { class: 'btn ghost', type: 'button', onclick: function () { sel = null; drawCard(); paint(); } }, R.T('닫기', 'Close'))));
     }
 
     function resize() {

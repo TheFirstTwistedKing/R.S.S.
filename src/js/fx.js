@@ -108,7 +108,101 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { cancelAnimationFrame(globe.raf); globe.raf = 0; }
     else if (globe.on && !globe.raf) globe.raf = requestAnimationFrame(globeFrame);
+    if (document.hidden) { cancelAnimationFrame(bin.raf); bin.raf = 0; }
+    else if (bin.on && !bin.raf) bin.raf = requestAnimationFrame(binFrame);
   });
+
+  /* ───────── 스캔라인 노이즈 텍스처 (한 번만 생성, 배경과 비슷한 어두운 앰버) ───────── */
+  R.fx.noise = function () {
+    try {
+      var c = document.createElement('canvas'); c.width = c.height = 180;
+      var g = c.getContext('2d'), id = g.createImageData(180, 180);
+      for (var i = 0; i < id.data.length; i += 4) {
+        var v = Math.random();
+        id.data[i] = 200 * v; id.data[i + 1] = 150 * v; id.data[i + 2] = 70 * v;
+        id.data[i + 3] = v > 0.55 ? Math.round(60 * v) : 0;
+      }
+      g.putImageData(id, 0, 0);
+      document.documentElement.style.setProperty('--noise-tex', 'url(' + c.toDataURL('image/png') + ')');
+    } catch (e) {}
+  };
+
+  /* ───────── 메인 배경: 희미하게 흘러내리는 이진수 ───────── */
+  var bin = { cv: null, g: null, raf: 0, on: false, drops: [], last: 0, fs: 14 };
+  function binFrame(now) {
+    if (!bin.on) { bin.raf = 0; return; }
+    bin.raf = requestAnimationFrame(binFrame);
+    if (now - bin.last < 50) return;          // 초당 20회만 갱신 (천천히 내려오게)
+    bin.last = now;
+    var cv = bin.cv, g = bin.g;
+    var r = cv.getBoundingClientRect(), d = Math.min(1.5, window.devicePixelRatio || 1);
+    var w = Math.round(r.width * d), hh = Math.round(r.height * d);
+    if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh; bin.drops = []; }
+    var fs = bin.fs * d, cols = Math.ceil(w / (fs * 1.6));
+    if (bin.drops.length !== cols) { bin.drops = []; for (var i = 0; i < cols; i++) bin.drops.push({ y: Math.random() * -hh, v: 0.35 + Math.random() * 0.65, on: Math.random() < 0.55 }); }
+    // 지난 글자를 조금씩 지워 꼬리가 남게
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = 'rgba(0,0,0,0.09)'; g.fillRect(0, 0, w, hh);
+    g.globalCompositeOperation = 'source-over';
+    g.font = fs + 'px D2Coding, monospace'; g.textBaseline = 'top';
+    bin.drops.forEach(function (dr, i) {
+      if (!dr.on) { if (Math.random() < 0.003) dr.on = true; return; }
+      var x = i * fs * 1.6;
+      g.fillStyle = 'rgba(255,176,32,' + (0.10 + dr.v * 0.12) + ')';
+      g.fillText(Math.random() < 0.5 ? '0' : '1', x, dr.y);
+      dr.y += fs * dr.v;
+      if (dr.y > hh) { dr.y = -fs * (2 + Math.random() * 30); dr.v = 0.35 + Math.random() * 0.65; dr.on = Math.random() < 0.6; }
+    });
+  }
+  R.fx.binary = function (on) {
+    bin.cv = bin.cv || document.getElementById('binrain');
+    bin.g = bin.g || bin.cv.getContext('2d');
+    bin.on = on && !reduce;
+    if (bin.on && !bin.raf) bin.raf = requestAnimationFrame(binFrame);
+  };
+
+  /* ───────── 창 열림 연출: 이진수 · 한글 · 영어 · 일본어 · 중국어 · 히브리어가 섞여 쏟아진 뒤 창이 드러남 ───────── */
+  var GLYPHS = ('01010101' + '가나다라마바사아자차카타파하정보기밀' + 'ABCDEFGHKLMNRSTXZ' + 'アイウエオカキクケコサシスセソ' + '機密情報档案控制系统' + 'אבגדהוזחטיכלמנסעפצקרשת').split('');
+  var openFx = { raf: 0 };
+  R.fx.rainOpen = function (target, done) {
+    var cv = document.getElementById('rainOpen');
+    if (!cv || reduce || !target) { if (done) done(); return; }
+    cancelAnimationFrame(openFx.raf);
+    var rect = target.getBoundingClientRect();
+    var d = Math.min(1.5, window.devicePixelRatio || 1);
+    cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d);
+    cv.classList.add('on');
+    var g = cv.getContext('2d');
+    var fs = 15, step = fs * 1.15, cols = Math.max(1, Math.floor(rect.width / step));
+    var drops = [];
+    for (var i = 0; i < cols; i++) drops.push({ x: rect.left + i * step + 4, y: rect.top - Math.random() * rect.height * 0.6, v: (rect.height / 26) * (0.7 + Math.random() * 0.6), trail: [] });
+    var t0 = performance.now(), DUR = 760, last = 0;
+    g.setTransform(d, 0, 0, d, 0, 0);
+    g.font = fs + 'px D2Coding, "Malgun Gothic", "Yu Gothic", "Microsoft YaHei", "Segoe UI", sans-serif';
+    g.textBaseline = 'top';
+    (function frame(now) {
+      var p = (now - t0) / DUR;
+      if (p >= 1) { g.clearRect(0, 0, innerWidth, innerHeight); cv.classList.remove('on'); openFx.raf = 0; return; }
+      openFx.raf = requestAnimationFrame(frame);
+      if (now - last < 33) return; last = now;
+      g.clearRect(0, 0, innerWidth, innerHeight);
+      var fade = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
+      drops.forEach(function (dr) {
+        dr.y += dr.v;
+        dr.trail.unshift(GLYPHS[(Math.random() * GLYPHS.length) | 0]);
+        if (dr.trail.length > 9) dr.trail.pop();
+        dr.trail.forEach(function (ch, k) {
+          var y = dr.y - k * fs * 1.05;
+          if (y < rect.top - fs || y > rect.bottom) return;
+          var a = (k === 0 ? 0.95 : 0.55 * (1 - k / 9)) * fade;
+          g.fillStyle = k === 0 ? 'rgba(255,236,190,' + a + ')' : 'rgba(255,176,32,' + a + ')';
+          g.fillText(ch, dr.x, y);
+        });
+      });
+    })(t0);
+    R.sound.out();
+    if (done) setTimeout(done, 120);
+  };
 
   /* 데이터 스트림 (장식용 16진수 열) */
   R.fx.hex = function () {
