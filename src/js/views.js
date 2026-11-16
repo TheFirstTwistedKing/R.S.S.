@@ -25,7 +25,7 @@
     // 창이 열릴 때 여러 언어 글자가 쏟아지는 연출
     m.classList.remove('opening'); void m.offsetWidth; m.classList.add('opening');
     if (R.fx && R.fx.rainOpen) R.fx.rainOpen(dlg);
-    setTimeout(function () { m.classList.remove('opening'); }, 800);
+    // 'opening' 표시는 그대로 둠: 떼면 기본 등장 애니메이션이 다시 재생되어 창이 한 번 더 깜빡임
     m.onclick = function (e) { if (e.target === m) close(); };
     document.addEventListener('keydown', esc);
     var f = dlg.querySelector('input, textarea, select'); if (f) setTimeout(function () { f.focus(); }, 30);
