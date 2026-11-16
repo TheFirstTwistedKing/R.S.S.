@@ -137,7 +137,7 @@ ipcMain.handle('backup:save', async (_e, defaultName, text) => {
     title: '백업 내보내기',
     defaultPath: path.join(app.getPath('documents'), defaultName),
     filters: [
-      { name: 'R.S.S. 백업', extensions: ['rssvault', 'json'] },
+      { name: 'R.S.S. 백업 · 학습 파일', extensions: ['rssvault', 'rssbrain', 'json'] },
       { name: '모든 파일', extensions: ['*'] }
     ]
   });
@@ -151,7 +151,7 @@ ipcMain.handle('backup:open', async () => {
     title: '백업 가져오기',
     properties: ['openFile'],
     filters: [
-      { name: 'R.S.S. 백업', extensions: ['rssvault', 'json'] },
+      { name: 'R.S.S. 백업 · 학습 파일', extensions: ['rssvault', 'rssbrain', 'json'] },
       { name: '모든 파일', extensions: ['*'] }
     ]
   });

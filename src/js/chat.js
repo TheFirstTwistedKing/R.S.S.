@@ -9,6 +9,14 @@
 
   /* ───────── 문구 도우미 ───────── */
   function pick(x) { return Array.isArray(x) ? x[(Math.random() * x.length) | 0] : x; }
+  /* 받침에 맞는 조사 (현황판이라고 · 블루베리라고 / 열어로 · 현황으로) */
+  function jong(w) { var c = String(w || '').trim().slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; return /[0-9]$/.test(w) ? ([1, 1, 0, 1, 0, 0, 1, 1, 1, 0][+String(w).slice(-1)] ? 1 : 0) : 0; }
+  function jo(o) {
+    var say = o.say || '', act = o.act || '', js = jong(say), ja = jong(act);
+    o['라고'] = js ? '이라고' : '라고'; o['는'] = js ? '은' : '는'; o['를'] = js ? '을' : '를';
+    o['로'] = ja && ja !== 8 ? '으로' : '로'; o['와'] = ja ? '과' : '와';
+    return o;
+  }
   function fmt(s, o) { return pick(s).replace(/\{([^}]+)\}/g, function (m, k) { return o && o[k] != null ? o[k] : m; }); }
   function cw(ch) { var c = ch.codePointAt(0); return (c >= 0x1100 && c <= 0x115F) || (c >= 0x2E80 && c <= 0xA4CF) || (c >= 0xAC00 && c <= 0xD7A3) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFF60) ? 2 : 1; }
   function sw(s) { var n = 0; for (var ch of String(s)) n += cw(ch); return n; }
@@ -48,10 +56,10 @@
     });
   }
   /* 글 안의 파일 코드는 누르면 열람, ||가림|| 은 검은 막대 */
-  var CODE_RE = /\b(CHR|ORG|LOC|ITM|LOR)-\d{4}\b/g;
+  var CODE_RE = /\b(CHR|ORG|LOC|ITM|PLN)-\d{4}\b/g;
   function enrich(el, text) {
     el.textContent = '';
-    var re = /\|\|([\s\S]+?)\|\||\b(?:CHR|ORG|LOC|ITM|LOR)-\d{4}\b/g, last = 0, m;
+    var re = /\|\|([\s\S]+?)\|\||\b(?:CHR|ORG|LOC|ITM|PLN)-\d{4}\b/g, last = 0, m;
     while ((m = re.exec(text))) {
       if (m.index > last) el.appendChild(document.createTextNode(text.slice(last, m.index)));
       if (m[1] != null) {
@@ -96,7 +104,13 @@
     });
     return chain;
   }
-  var C = function (text, o) { o = o || {}; o.to = o.to || 'USER'; return say('control', text, o); };
+  var C = function (text, o) {
+    o = o || {}; o.to = o.to || 'USER';
+    var nm = R.brain && R.brain.name();
+    if (nm) text = pick(text).replace(/사용자님/g, nm + '님').replace(/\{호칭\}/g, nm + '님');
+    else text = pick(text).replace(/\{호칭\}/g, R.T('사용자님', 'you'));
+    return say('control', text, o);
+  };
   var CA = function (text, o) { o = o || {}; o.to = 'APEX'; return say('control', text, o); };
   var A = function (text, o) { o = o || {}; o.to = 'CONTROL'; return say('apex', text, o); };
 
@@ -272,8 +286,145 @@
     chain = chain.then(function () { R.sim.open(p); });
   }
 
+  /* ───────── 학습 (Control 이 가르친 말을 기억) ───────── */
+  var Q = '["\'“”‘’`]';
+  var unq = function (s) { return String(s || '').trim().replace(new RegExp('^' + Q + '+|' + Q + '+$', 'g'), '').trim(); };
+  var lastMiss = null, offer = null, fell = false, depth = 0;
+  /* 가르치는 말 알아보기 → { say, act } */
+  var VAGUE = /^(그건|그거|그게|그\s*말|이건|이거|이게|방금\s*(건|거|말)|아까\s*(건|거|말)|that|it|this)$/i;
+  function teachOf(t) {
+    var r = teachRaw(t);
+    return r && r.say && r.act && !VAGUE.test(r.say) ? r : null;
+  }
+  function teachRaw(t) {
+    var s = t.trim().replace(/^(앞으로(는)?|이제(부터)?|다음부터(는)?)\s*/, ''), m;
+    // X 는 Y 라는 뜻이야
+    if ((m = s.match(/^(.+?)\s*(?:이?라고\s*하면|은|는|이란|란)\s+(.+?)\s*(?:이?라는|란)\s*뜻(?:이야|이에요|입니다|이다|임|으로\s*알아\s*둬|으로\s*기억해)?\s*[.!]*$/))) return { say: unq(m[1]), act: unq(m[2]) };
+    // X 라고 하면 Y (해줘)
+    if ((m = s.match(/^(.+?)\s*(?:이?라고|라구)\s*(?:하면|말하면|치면|입력하면|쓰면)\s*,?\s*(.+?)\s*(?:해\s*줘|해줘|해\s*주세요|실행해\s*줘|실행해|처리해\s*줘|처리해|로\s*해\s*줘|으로\s*해\s*줘)?\s*[.!]*$/))) return { say: unq(m[1]), act: unq(m[2]) };
+    // X = Y · X -> Y
+    if ((m = s.match(/^(.+?)\s*(?:=>|->|=|→)\s*(.+)$/))) return { say: unq(m[1]), act: unq(m[2]) };
+    // when I say X, do Y
+    if ((m = s.match(/^(?:from\s+now\s+on,?\s*)?(?:when|if)\s+i\s+say\s+(.+?),?\s+(?:do|run|it\s+means|means|mean|open)\s+(.+?)\.?$/i))) return { say: unq(m[1]), act: unq(m[2]) };
+    return null;
+  }
+  /* 학습 관리 명령 (목록 · 지우기 · 초기화 · 내보내기 · 가져오기 · 호칭) → 처리했으면 true */
+  function brainCmd(t) {
+    var s = t.trim(), m, L = Lx().learn;
+    if (/^(학습|기억|배운\s*(것|거|말))\s*(목록|리스트|보여\s*줘?|확인|현황)?\s*[?.!]*$|^(뭘|무엇을|뭐)\s*배웠|^what\s+did\s+you\s+learn|^(learned|learning)(\s+list)?$/i.test(s)) { learnList(); return true; }
+    if (/^(학습|learning)\s*(내보내기|내보내|공유|저장|export)/i.test(s)) {
+      C(L.exportAsk, { wait: 200 });
+      chain = chain.then(function () { return R.brain.exportFile(); }).then(function (n) {
+        if (n === 'empty') C(L.none); else if (n) { R.log('SEC', R.T('학습 내보내기 ', 'Learning exported ') + n + R.T('건', '')); C(fmt(L.exported, { n: n })); }
+      }, function (e) { C(fmt(Lx().error, { q: e.message })); });
+      return true;
+    }
+    if (/^(학습|learning)\s*(가져오기|가져와|불러오기|불러와|합치기|import)/i.test(s)) {
+      C(L.importAsk, { wait: 200 });
+      chain = chain.then(function () { return R.brain.importFile(); }).then(function (r) {
+        if (r) { R.log('SEC', R.T('학습 가져오기 · 새 규칙 ', 'Learning imported · new ') + r.added + R.T('건 · 바뀐 규칙 ', ' · changed ') + r.changed + R.T('건', '')); CA(fmt(L.mergeToApex, { n: r.added }), { wait: 200 }); A(fmt(L.mergeAck, { n: r.added, c: r.changed })); C(fmt(L.imported, { n: r.added, c: r.changed })); }
+      }, function (e) { C(fmt(Lx().error, { q: e.message })); });
+      return true;
+    }
+    if (/^(학습|기억)\s*(초기화|리셋|전부\s*(지워|삭제|잊어))|^forget\s+everything$/i.test(s)) {
+      chain = chain.then(function () { return R.ui.confirm(R.T('학습 초기화', 'Reset learning'), R.T('Control 이 배운 말과 호칭을 모두 지웁니다.', 'Control will forget every taught phrase and name.'), R.T('초기화', 'Reset'), true); }).then(function (ok) {
+        if (!ok) return C(Lx().cancelled);
+        var n = R.brain.wipe(); R.log('SEC', R.T('학습 초기화 · ', 'Learning reset · ') + n + R.T('건 삭제', ' removed')); C(fmt(L.wiped, { n: n }));
+      });
+      return true;
+    }
+    if ((m = s.match(/^(?:학습|기억)\s*(?:삭제|지워|지우기|잊어)\s*#?(\d+)\s*[.!]*$/)) || (m = s.match(/^#?(\d+)\s*번?\s*(?:학습|기억)?\s*(?:삭제|지워|잊어)/))) {
+      var list = R.brain.get().rules, r = list[+m[1] - 1];
+      if (!r) return C(fmt(L.noNum, { n: m[1] })), true;
+      R.brain.forget(r); R.log('DATA', R.T('학습 삭제: ', 'Learning removed: ') + r.say); C(fmt(L.forgot, jo({ say: r.say })));
+      return true;
+    }
+    if ((m = s.match(/^["'“‘]?(.+?)["'”’]?\s*(?:은|는|이란|란|을|를)?\s*(?:잊어\s*(?:줘|버려)?|잊어버려|기억에서\s*지워)\s*[.!]*$/)) || (m = s.match(/^forget\s+["']?(.+?)["']?\.?$/i))) {
+      var hit = R.brain.get().rules.filter(function (x) { return R.brainKey(x.say) === R.brainKey(m[1]); })[0];
+      if (!hit) return C(fmt(L.notKnown, jo({ say: unq(m[1]) }))), true;
+      R.brain.forget(hit); R.log('DATA', R.T('학습 삭제: ', 'Learning removed: ') + hit.say); C(fmt(L.forgot, jo({ say: hit.say })));
+      return true;
+    }
+    // 호칭
+    if ((m = s.match(/^(?:앞으로\s*)?(?:나를|날|저를|절)\s*["'“‘]?(.+?)["'”’]?\s*(?:이?라고|으로|로)\s*불러\s*(?:줘|주세요|요|줄래)?\s*[.!]*$/)) || (m = s.match(/^(?:내|제)\s*이름은\s*["'“‘]?(.+?)["'”’]?\s*(?:이야|야|입니다|이에요|예요|임)?\s*[.!]*$/)) || (m = s.match(/^call\s+me\s+["']?(.+?)["']?\.?$/i))) {
+      var nm = unq(m[1]).replace(/님$/, '').slice(0, 24);
+      if (!nm) return false;
+      R.brain.setName(nm); R.log('DATA', R.T('호칭 학습: ', 'Name learned: ') + nm); C(fmt(L.named, { name: nm }));
+      return true;
+    }
+    if (/^(호칭|이름)\s*(지워|삭제|초기화|원래대로)|원래대로\s*불러/.test(s)) { R.brain.setName(''); C(L.unnamed); return true; }
+    return false;
+  }
+  function learnList() {
+    var L = Lx().learn, mine = R.brain.get().rules, base = R.brain.all().filter(function (r) { return r.src === 'builtin'; });
+    CA(L.listToApex, { wait: 200 });
+    if (!mine.length && !base.length) { A(L.listEmpty); return C(L.none); }
+    var w = Math.min(26, Math.max(8, Math.floor(cols() * 0.38)));
+    var rows = mine.map(function (r, i) { return { t: fit('#' + (i + 1), 5) + fit(r.say, w) + ' → ' + r.act + (r.n ? '  ×' + r.n : '') + (r.src === 'import' ? R.T('  (가져옴)', '  (imported)') : '') }; });
+    if (base.length) { rows.push({ t: ' ' }); rows.push({ t: R.T('[앱 기본 규칙]', '[BUILT-IN]'), c: 'hi' }); base.forEach(function (r) { rows.push({ t: fit('·', 5) + fit(r.say, w) + ' → ' + r.act }); }); }
+    A(fmt(L.listAck, { n: mine.length, b: base.length }), { pre: rows });
+    C(L.listUser);
+  }
+  /* 배운 규칙 실행: Apex 가 규칙을 찾아 원래 명령으로 바꿔 처리 */
+  function runRule(r, near) {
+    R.brain.used(r);
+    A(fmt(near ? Lx().learn.applyNear : Lx().learn.apply, { say: r.say, act: r.act }), { wait: 160 });
+    depth++;
+    try { handle(r.act); } finally { depth--; }
+  }
+  function learnFrom(say, act, how) {
+    var L = Lx().learn;
+    if (!say || !act) return C(L.teachBad);
+    if (R.brainKey(say) === R.brainKey(act)) return C(L.teachSame);
+    if (teachOf(act)) return C(L.teachBad);
+    var res = R.brain.teach(say, act);
+    R.log('DATA', R.T('학습: ', 'Learned: ') + '"' + say + '" → "' + act + '"');
+    CA(fmt(L.toApex, { say: say, act: act }), { wait: 220 });
+    A(fmt(res.updated ? L.ackUpdate : L.ack, { n: R.brain.get().rules.length }));
+    C(fmt(how === 'miss' ? L.learnedMiss : L.learned, jo({ say: say, act: act })));
+  }
+
   /* ───────── 입력 해석 ───────── */
   function handle(t) {
+    fell = false;
+    if (depth > 3) { fell = true; return C(Lx().learn.loop); }
+    if (depth === 0) {
+      var yes = /^(응|어|네|예|그래|좋아|맞아|ㅇㅇ|ㅇ|yes|y|ok|okay|sure)[.!]*$/i.test(t.trim()), no = /^(아니|아냐|아니요|ㄴㄴ|ㄴ|no|n|nope)[.!]*$/i.test(t.trim());
+      // 직전 제안("이 말도 같은 뜻으로 기억할까요?")에 대한 대답
+      if (offer && (yes || no)) { var o = offer; offer = null; lastMiss = null; return yes ? learnFrom(o.say, o.act, 'miss') : C(Lx().learn.declined); }
+      offer = null;
+      // 가르치기 · 학습 관리
+      var tc = teachOf(t);
+      if (tc && !/^(https?:|www\.)/i.test(t.trim())) { lastMiss = null; return learnFrom(tc.say, tc.act); }
+      // 못 알아들은 말 바로 뒤: "Y 라는 뜻이야"
+      var mm = lastMiss && t.trim().match(/^(?:그건|그거|그\s*말은|그\s*뜻은|방금\s*건|아까\s*건)?\s*(.+?)\s*(?:이?라는|란)\s*뜻(?:이야|이에요|입니다|이다|임)?\s*[.!]*$/);
+      if (mm) { var miss = lastMiss; lastMiss = null; learnFrom(miss, unq(mm[1]), 'miss'); depth++; try { handle(unq(mm[1])); } finally { depth--; } return; }
+      if (brainCmd(t)) { lastMiss = null; return; }
+      // 가르친 말과 정확히 같으면 그 명령으로
+      var ex = R.brain.exact(t);
+      if (ex) { lastMiss = null; return runRule(ex); }
+      var prevMiss = lastMiss;
+      route(t);
+      if (fell) {
+        // 오타 · 띄어쓰기 차이로 비슷한 배운 말이 있으면 그걸로
+        var nr = R.brain.near(t);
+        if (nr) { lastMiss = null; C(fmt(Lx().learn.guess, jo({ say: nr.say })), { wait: 120 }); return runRule(nr, true); }
+        lastMiss = t.trim();
+        C(Lx().learn.askMeaning, { wait: 200 });
+      } else if (prevMiss && R.brainKey(prevMiss) !== R.brainKey(t)) {
+        // 못 알아들은 말 다음에 다르게 말해서 처리됐으면 → 같은 뜻으로 기억할지 물어봄
+        offer = { say: prevMiss, act: t.trim() }; lastMiss = null;
+        C(fmt(Lx().learn.offer, jo({ say: offer.say, act: offer.act })), { wait: 300 });
+      } else lastMiss = null;
+      return;
+    }
+    // 배운 규칙 안의 명령이 또 다른 배운 말이면 이어서 처리 (서로 부르면 위에서 멈춤)
+    var ex2 = R.brain.exact(t);
+    if (ex2) return runRule(ex2);
+    return route(t);
+  }
+
+  function route(t) {
     // ── 명령어 (정확히 이 낱말일 때) ──
     var cmd = t.trim().toLowerCase().replace(/[.!?]+$/, '');
     if (/^(도움말|도움|help|\?|명령어|commands?)$/.test(cmd)) return help();
@@ -315,7 +466,8 @@
     }
     if (/(현황|통계|몇\s*(개|건)|얼마나|\b(status|stats|statistics|how\s+many)\b)/i.test(t)) return stat();
     if (ms.length) return view(ms[0]);
-    C(Lx().fallback); C(Lx().boot.hint, { wait: 200 });
+    if (depth === 0) { fell = true; return C(Lx().fallback); }
+    fell = true; C(Lx().fallback); C(Lx().boot.hint, { wait: 200 });
   }
 
   function send(text) {
@@ -339,7 +491,7 @@
     focus: function () { if (input) input.focus(); },
     send: send,
     boot: function () {
-      out.innerHTML = ''; session = null; chain = Promise.resolve();
+      out.innerHTML = ''; session = null; chain = Promise.resolve(); lastMiss = null; offer = null;
       C(Lx().boot.control, { wait: 500 });
       A(fmt(Lx().boot.apex, { n: R.A.entities.length, s: R.SEALED.length }), { wait: 350 });
       if (!R.A.entities.length) C(Lx().boot.empty, { wait: 300 });
