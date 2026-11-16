@@ -19,5 +19,7 @@ contextBridge.exposeInMainWorld('rss', {
     const h = (_e, text, from) => fn(text, from);
     ipcRenderer.on('net:packet', h);
     return () => ipcRenderer.removeListener('net:packet', h);
-  }
+  },
+  // F11 전체화면 상태 알림
+  onFullscreen: (fn) => ipcRenderer.on('win:fullscreen', (_e, on) => fn(!!on))
 });

@@ -93,6 +93,17 @@ function createWindow() {
   });
   win.webContents.on('will-navigate', (e) => e.preventDefault());
 
+  // F11: 작업 표시줄까지 가리는 완전 전체화면 (다시 누르면 원래대로)
+  win.webContents.on('before-input-event', (e, input) => {
+    if (input.type === 'keyDown' && input.key === 'F11' && !input.isAutoRepeat) {
+      e.preventDefault();
+      win.setFullScreen(!win.isFullScreen());
+    }
+  });
+  const fsNotify = () => { if (!win.isDestroyed()) win.webContents.send('win:fullscreen', win.isFullScreen()); };
+  win.on('enter-full-screen', fsNotify);
+  win.on('leave-full-screen', fsNotify);
+
   // 닫기 전에 렌더러가 저장 대기 중인 기록을 디스크에 쓰도록 기다림 (최대 3초)
   let closing = false;
   win.on('close', (e) => {

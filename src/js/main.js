@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.3.0';
+  R.version = '3.4.0';
   var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'] };
   var destroy = null;
 
@@ -39,6 +39,7 @@
   function lock() {
     if ($('#app').hidden) return;
     closeModule();
+    if (R.sim) R.sim.close(false);
     var md = $('#modal'); md.hidden = true; md.innerHTML = '';
     R.log('SEC', R.T('세션 잠금 · ', 'Session locked · ') + R.sessionId);
     R.fx.binary(false);
@@ -96,6 +97,13 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     if (window.rss) document.body.classList.add('electron');
+    // F11 완전 전체화면: Electron 이 알려주는 상태에 맞춰 위쪽 창 버튼 자리를 없앰
+    if (window.rss && window.rss.onFullscreen) window.rss.onFullscreen(function (on) { document.body.classList.toggle('fs', on); });
+    else document.addEventListener('keydown', function (e) {
+      // 브라우저 미리보기: F11 을 문서 전체화면으로
+      if (e.key !== 'F11') return; e.preventDefault();
+      if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(function () {});
+    });
     if (window.rss && window.rss.platform === 'win32') document.body.classList.add('win32');
     $('#topEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
     $('#modX').addEventListener('click', closeModule);
