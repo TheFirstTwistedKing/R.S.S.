@@ -254,21 +254,21 @@
     C(Lx().ro.user);
   }
 
-  function simulate(t) {
+  /* 캠: 캠 코드를 입력하면 감시 화면을 띄움 (예: A-001 · 캠 A-001), "캠 종료" 로 닫음 */
+  function camera(t) {
     if (/(종료|꺼|끄|닫|중지|close|off|stop|end)/i.test(t)) {
       if (!R.sim.isOpen()) return C(Lx().sim.notOpen);
       R.sim.close(true); return C(Lx().sim.closed);
     }
-    var q = t.replace(/(시뮬레이션|시뮬|simulation|\bsim\b)/ig, '').replace(/(을|를|좀|으로|로)?\s*(켜\s*줘|켜줘|켜|열어\s*줘|열어줘|열어|보여\s*줘|보여줘|띄워\s*줘|띄워줘|시작해?\s*줘?|돌려\s*줘|on|open|start|show|run)\s*$/i, '').trim();
-    var places = R.SIM_PLACES.map(function (p) { return R.simPath(p); }).join(' / ');
-    if (!q) return C(fmt(Lx().sim.need, { 목록: places }));
-    var r = R.simFind(q);
-    if (r.unknown) return C(fmt(Lx().sim.unknown, { q: q, 목록: places }));
-    if (r.many) return C(fmt(Lx().sim.many, { 목록: r.many.map(function (p) { return p.site; }).join(' / ') }));
-    var p = r.place;
-    CA(fmt(Lx().sim.toApex, { 장소: p.site, 코드: p.code }), { wait: 240 });
-    A(fmt(Lx().sim.ack, { 장소: p.site, 코드: p.code }), { pre: [{ t: R.simPath(p), c: 'hi' }, { t: fit('CAM', 10) + p.cam }, { t: fit('LINK', 10) + (p.feed ? R.T('수립 · 순찰 로봇 카메라 영상', 'established · patrol robot camera') : R.T('수립 · 영상 신호 미수신', 'established · no video signal')) }] });
-    C(fmt(Lx().sim.user, { 장소: p.site }));
+    var codes = R.CAMS.map(function (p) { return p.code; }).join(' / ');
+    var p = R.camFind(t);
+    if (!p) {
+      var q = (String(t).match(/\b[a-z]\s*-?\s*\d{3}\b/i) || [''])[0].trim();
+      return C(fmt(q ? Lx().sim.unknown : Lx().sim.need, { q: q, 목록: codes }));
+    }
+    CA(fmt(Lx().sim.toApex, { 코드: p.code }), { wait: 240 });
+    A(fmt(Lx().sim.ack, { 코드: p.code }), { pre: [{ t: 'CAM ' + p.code, c: 'hi' }, { t: fit('UNIT', 10) + p.unit }, { t: fit('LINK', 10) + (p.feed ? R.T('수립 · 순찰 로봇 카메라 영상', 'established · patrol robot camera') : R.T('수립 · 영상 신호 미수신', 'established · no video signal')) }] });
+    C(fmt(Lx().sim.user, { 코드: p.code }));
     chain = chain.then(function () { R.sim.open(p); });
   }
 
@@ -282,8 +282,8 @@
     if (/^(msg|메신저|messenger)$/.test(cmd)) { C(Lx().module.msg, { wait: 200 }); chain = chain.then(function () { R.go('msg'); }); return; }
     if (/^(아카이브|archive)(\s*(켜|열어|보여|on|open).*)?$/.test(cmd) || /아카이브\s*(좀\s*)?(켜|열어|보여)|open\s+(the\s+)?archive/i.test(t)) { C(Lx().module.files, { wait: 200 }); chain = chain.then(function () { R.go('files'); }); return; }
     if (/^(잠금|lock|잠가|잠가줘)$/.test(cmd)) return doLock();
-    // 시뮬레이션: 명령어와 장소를 함께 (예: 시뮬레이션 북부 산골짜기 제 3초소)
-    if (/(시뮬레이션|시뮬|simulation|\bsim\b)/i.test(t)) return simulate(t);
+    // 캠: 캠 코드만 입력하거나 "캠 A-001" (닫기: 캠 종료)
+    if (/^\s*[a-z]\s*-?\s*\d{3}\s*$/i.test(t) || /(^|\s)(캠|카메라|cam|camera)(\s|$)/i.test(t) || /^캠/.test(t.trim())) return camera(t);
     // 봉인 문서(I Archi 행성 등)에 대한 요청은 무엇이든 승인 거부
     var seal = R.sealedIn(t);
     if (seal.length) return sealedReply(seal[0]);

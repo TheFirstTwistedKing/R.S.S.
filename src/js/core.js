@@ -335,7 +335,43 @@
     tick: function () { this.beep(2200, 0.012, 0.012); },
     deny: function () { this.beep(150, 0.18, 0.05); this.beep(120, 0.22, 0.05, 0.16); },
     grant: function () { var s = this; [660, 880, 1320].forEach(function (f, i) { s.beep(f, 0.07, 0.03, i * 0.08); }); },
-    nav: function () { this.beep(880, 0.03, 0.02); }
+    nav: function () { this.beep(880, 0.03, 0.02); },
+    /* 순찰 로봇 발소리 (감시 영상의 마이크로 들리는 소리, 코드로 합성)
+       - 쿵: 무거운 금속 발이 땅을 디디는 저음  - 뽀득: 눈이 눌리는 잡음 알갱이 몇 개
+       - 철컥: 발목 관절의 짧은 금속음  - 위잉: 다음 다리를 드는 서보 모터 소리 (작게) */
+    mechStep: function (side) {
+      if (!this.on) return;
+      try {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        if (!noiseBuf) this.stroke('init');
+        if (!master) return;
+        var t = ctx.currentTime + 0.005, v = 0.92 + Math.random() * 0.16, pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+        var out = ctx.createBiquadFilter(); out.type = 'lowpass'; out.frequency.value = 5200;   // 카메라 마이크 느낌으로 윗소리를 조금 깎음
+        var bus = ctx.createGain(); bus.gain.value = 0.85;
+        bus.connect(out); if (pan) { pan.pan.value = (side || 0) * 0.25; out.connect(pan); pan.connect(master); } else out.connect(master);
+        // 쿵
+        var o = ctx.createOscillator(), og = ctx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(78 * v, t); o.frequency.exponentialRampToValueAtTime(34, t + 0.22);
+        og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.75, t + 0.006); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        o.connect(og); og.connect(bus); o.start(t); o.stop(t + 0.32);
+        var noise = function (type, freq, q, peak, decay, at, rate) {
+          var src = ctx.createBufferSource(); src.buffer = noiseBuf; src.playbackRate.value = rate || 1;
+          var f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(peak, at + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+          src.connect(f); f.connect(g); g.connect(bus); src.start(at, Math.random() * 0.1); src.stop(at + decay + 0.02);
+        };
+        noise('lowpass', 420 * v, 0.7, 0.5, 0.16, t, 0.6);                               // 쿵의 몸통
+        for (var i = 0; i < 5; i++) noise('bandpass', (900 + Math.random() * 1400) * v, 2.2, 0.18 + Math.random() * 0.12, 0.03 + Math.random() * 0.03, t + 0.01 + i * 0.022 + Math.random() * 0.012);   // 뽀득
+        noise('bandpass', 3100 * v, 6, 0.12, 0.05, t + 0.004);                           // 철컥 (금속)
+        var m = ctx.createOscillator(), mg = ctx.createGain(), mf = ctx.createBiquadFilter();   // 위잉
+        m.type = 'sawtooth'; m.frequency.setValueAtTime(210 * v, t + 0.12); m.frequency.linearRampToValueAtTime(320 * v, t + 0.42);
+        mf.type = 'bandpass'; mf.frequency.value = 900; mf.Q.value = 1.4;
+        mg.gain.setValueAtTime(0.0001, t + 0.12); mg.gain.linearRampToValueAtTime(0.035, t + 0.2); mg.gain.linearRampToValueAtTime(0.0001, t + 0.46);
+        m.connect(mf); mf.connect(mg); mg.connect(bus); m.start(t + 0.12); m.stop(t + 0.5);
+      } catch (e) { /* 소리 실패는 무시 */ }
+    }
   };
 
   /* ── 이미지: 정사각에 가깝게 잘라 작은 해상도로 줄여 저장(픽셀 느낌 + 용량 절약) ── */
