@@ -2,13 +2,13 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.1.0';
-  var MODS = { files: ['ARC-01', '문서 아카이브'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
+  R.version = '3.2.0';
+  var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'] };
   var destroy = null;
 
   /* 상단 아카이브 버튼의 문서 수 갱신 */
   R.archiveRefresh = function () {
-    var d = R.store.db, el = $('#arcCount'); if (!d || !el) return;
+    var d = R.store.db, el = $('#arcCount'); if (!d || !el) return; // (상단 버튼 없음: 호환용)
     var c = function (t) { return d.entities.filter(function (e) { return e.type === t; }).length; };
     el.textContent = '인물 ' + c('character') + ' · 세계관 ' + (c('lore') + R.SEALED.filter(function (s) { return s.type === 'lore'; }).length) + ' · 전체 ' + (d.entities.length + R.SEALED.length);
   };
@@ -18,10 +18,14 @@
     if (!R.store.db || !MODS[name]) return;
     if (destroy) { try { destroy(); } catch (e) {} destroy = null; }
     var view = $('#view'); view.innerHTML = '';
-    $('#modK').textContent = MODS[name][0]; $('#modT').textContent = MODS[name][1];
+    $('#modK').textContent = MODS[name][0]; $('#modT').textContent = R.T(MODS[name][1], MODS[name][2]);
+    $('#modHint').textContent = R.T('ESC 로 닫고 대화창으로 복귀', 'ESC to close and return');
     var m = $('#module'), was = !m.hidden;
     m.hidden = false;
-    if (!was) { var w = m.querySelector('.mod-win'); w.style.animation = 'none'; void w.offsetWidth; w.style.animation = ''; }
+    // Control 이 여는 연출: 여러 언어 글자가 쏟아진 뒤 창이 드러남
+    m.classList.remove('opening'); void m.offsetWidth; m.classList.add('opening');
+    R.fx.rainOpen(m.querySelector('.mod-win'));
+    setTimeout(function () { m.classList.remove('opening'); }, 800);
     var r = R.views[name](view, opts || {});
     if (typeof r === 'function') destroy = r;
     R.sound.nav();
@@ -39,7 +43,8 @@
     if ($('#app').hidden) return;
     closeModule();
     var md = $('#modal'); md.hidden = true; md.innerHTML = '';
-    R.log('SEC', '세션 잠금 · ' + R.sessionId);
+    R.log('SEC', R.T('세션 잠금 · ', 'Session locked · ') + R.sessionId);
+    R.fx.binary(false);
 
     R.store.lock().then(function () {
       $('#termOut').innerHTML = ''; $('#logList').innerHTML = '';
@@ -58,10 +63,11 @@
     setTimeout(function () { app.classList.remove('on'); }, 1400);
     // 이전 버전에서 만들어진 예시 기록 정리 (한 번만 해당)
     var purged = R.purgeSamples(R.store.db);
-    if (purged) { R.log('SYS', '이전 버전 예시 기록 ' + purged + '건 삭제'); R.store.save(); }
+    if (purged) { R.log('SYS', R.T('이전 버전 예시 기록 ' + purged + '건 삭제', 'Removed ' + purged + ' legacy sample records')); R.store.save(); }
     R.logwin.render();
     R.term.boot();
     R.archiveRefresh();
+    R.fx.binary(true);
     R.resetIdle();
     setTimeout(R.term.focus, 300);
   }
@@ -71,7 +77,7 @@
   R.resetIdle = function () {
     clearTimeout(idleT);
     var min = R.store.db && R.store.db.settings.autoLock;
-    if (min > 0) idleT = setTimeout(function () { R.log('SEC', '자동 잠금 (' + min + '분 무입력)'); lock(); }, min * 60000);
+    if (min > 0) idleT = setTimeout(function () { R.log('SEC', R.T('자동 잠금 (' + min + '분 무입력)', 'Auto lock (' + min + ' min idle)')); lock(); }, min * 60000);
   };
   /* 마우스로 누를 때마다 '달칵' (터치는 제외) */
   document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'mouse') R.sound.click(false); }, { passive: true, capture: true });
@@ -81,20 +87,20 @@
     document.addEventListener(ev, function () { if (!$('#app').hidden) R.resetIdle(); }, { passive: true });
   });
 
-  /* 효과음 토글: 메인 화면 상단에만 존재 */
-  function drawSound() {
-    var b = $('#soundBtn');
-    b.setAttribute('aria-pressed', R.sound.on ? 'true' : 'false');
-    b.querySelector('b').textContent = R.sound.on ? 'ON' : 'OFF';
+  /* 화면 고정 문구를 현재 언어로 */
+  function applyLang() {
+    var T = R.T;
+    $('#langTag').textContent = R.lang === 'en' ? 'EN' : 'KO';
+    $('#termIn').placeholder = T('Control 에게 말하기 · 명령어는 "도움말" · Enter 전송', 'Talk to Control · type "help" for commands · Enter to send');
+    $('#lockWarn').textContent = T('본 시스템은 인가된 인원 전용입니다. 모든 접속 시도는 기록됩니다.', 'Authorized personnel only. Every access attempt is logged.');
+    document.documentElement.lang = R.lang;
   }
+  R.applyLang = applyLang;
 
   document.addEventListener('DOMContentLoaded', function () {
     if (window.rss) document.body.classList.add('electron');
     if (window.rss && window.rss.platform === 'win32') document.body.classList.add('win32');
     $('#topEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
-    $('#soundBtn').addEventListener('click', function () { R.sound.set(!R.sound.on); drawSound(); R.sound.key(); R.term.focus(); });
-    $('#lockBtn').addEventListener('click', lock);
-    $('#archiveBtn').addEventListener('click', function () { R.go('files'); });
     $('#modX').addEventListener('click', closeModule);
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); lock(); }
@@ -102,7 +108,9 @@
     });
     if (window.rss && window.rss.onFlush) window.rss.onFlush(function () { return R.store.dirty ? R.store.flush() : null; });
     window.addEventListener('beforeunload', function () { if (R.store.dirty) R.store.flush(); });
-    drawSound();
+    applyLang();
+    R.onLang(applyLang);
+    R.fx.noise();
     R.fx.clock();
     R.intro.init();
     R.term.init();

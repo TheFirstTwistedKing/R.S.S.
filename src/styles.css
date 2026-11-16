@@ -61,12 +61,23 @@ body.electron .dragbar { pointer-events: auto; }
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
   background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, .16) 3px);
 }
-.fx-scan::after {
-  content: ''; position: absolute; left: 0; right: 0; height: 30vh; top: -30vh;
-  background: linear-gradient(to bottom, transparent, rgba(255, 176, 32, .035), transparent);
-  animation: refresh 9s linear infinite; will-change: transform;
+/* 위에서 아래로 내려오는 스캔라인: 노이즈가 섞인 띠. 배경과 거의 같은 색이라 눈이 아프지 않음 */
+.fx-sweep {
+  position: fixed; left: 0; right: 0; top: -40vh; height: 40vh; z-index: 81; pointer-events: none;
+  background-image: var(--noise-tex, none), linear-gradient(to bottom, rgba(255, 176, 32, 0) 0%, rgba(255, 170, 40, .06) 18%, rgba(255, 190, 90, .14) 34%, rgba(255, 210, 140, .17) 45%, rgba(255, 210, 140, .17) 72%, rgba(255, 180, 70, .09) 86%, rgba(255, 176, 32, 0) 100%);
+  background-size: 180px 180px, 100% 100%;
+  /* 위아래 모두 천천히 사라지도록: 가운데가 가장 진하고 양 끝은 0 */
+  -webkit-mask: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .3) 12%, rgba(0, 0, 0, .8) 27%, #000 38%, #000 76%, rgba(0, 0, 0, .55) 88%, transparent 100%);
+  mask: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .3) 12%, rgba(0, 0, 0, .8) 27%, #000 38%, #000 76%, rgba(0, 0, 0, .55) 88%, transparent 100%);
+  opacity: .85; mix-blend-mode: screen;
+  animation: sweep-down 8s linear infinite, noise-shift .45s steps(5) infinite;
+  will-change: transform;
 }
-@keyframes refresh { to { transform: translateY(160vh); } }
+/* 가장 밝은 선도 띠 가운데에 두고 위아래로 번지게 */
+.fx-sweep::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 18%; transform: translateY(-50%); background: linear-gradient(to bottom, rgba(255, 200, 110, 0), rgba(255, 200, 110, .1) 40%, rgba(255, 215, 150, .16) 50%, rgba(255, 200, 110, .1) 60%, rgba(255, 200, 110, 0)); }
+@keyframes sweep-down { from { transform: translateY(0); } to { transform: translateY(140vh); } }
+@keyframes noise-shift { 0% { background-position: 0 0, 0 0; } 20% { background-position: -47px 31px, 0 0; } 40% { background-position: 61px -23px, 0 0; } 60% { background-position: -19px -57px, 0 0; } 80% { background-position: 37px 43px, 0 0; } 100% { background-position: 0 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .fx-sweep { display: none; } }
 .fx-vignette { position: fixed; inset: 0; z-index: 79; pointer-events: none; background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 60%, rgba(0, 0, 0, .55)); }
 
 /* ── 인트로 / 잠금 ── */
@@ -524,3 +535,61 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   .arc-go { display: inline-block; }
 }
 @media (max-width: 560px) { .arc-txt span { display: block; } .arc-txt b { font-size: 11px; } .arc-btn { height: 42px; } }
+
+/* ══ v3.2 메인 화면: 화면 전체 터미널 + 하단 가로 로그 ══ */
+.app { background: transparent; }
+.binrain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .5; z-index: 0; }
+.app > .status, .app > .term, .app > .logbar { position: relative; z-index: 1; }
+.status {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex: none;
+  padding: var(--s3) var(--s6) var(--s2); font: 11px/1 var(--f-mono); letter-spacing: .14em; color: var(--muted);
+}
+.st-id { display: flex; align-items: center; gap: var(--s3); }
+.st-em { display: inline-block; width: 44px; aspect-ratio: 212 / 128; filter: drop-shadow(0 0 4px rgba(255, 176, 32, .6)); }
+.st-em svg { width: 100%; height: 100%; display: block; }
+.st-id b { font: 800 15px/1 var(--f-ui); letter-spacing: .26em; color: var(--accent); text-shadow: var(--glow); }
+.st-sub { color: var(--faint); letter-spacing: .26em; }
+.st-meta { display: flex; gap: var(--s6); }
+.st-meta span { display: flex; gap: var(--s2); align-items: baseline; }
+.st-meta em { font-style: normal; color: var(--faint); font-size: 9px; letter-spacing: .2em; }
+.st-meta b { font-weight: 400; color: var(--text); }
+.app > .term { flex: 1; min-height: 0; display: flex; flex-direction: column; font: 14px/1.65 var(--f-mono); cursor: text; user-select: text; background: none; border: 0; }
+.app > .term .term-out { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s4) var(--s6) var(--s2); max-width: none; }
+.app > .term .msg { max-width: 1100px; }
+.app > .term .term-line { padding: var(--s3) var(--s6) var(--s4); border-top: 1px dashed var(--line); }
+.term-in { font-size: 15px; }
+
+/* 하단 가로 로그: 최신 기록이 오른쪽에 붙음 */
+.logbar { flex: none; display: flex; align-items: stretch; height: 84px; border-top: 1px solid var(--line-2); background: linear-gradient(to top, rgba(255, 176, 32, .04), rgba(5, 6, 7, .6)); }
+.logbar-h { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 var(--s4) 0 var(--s6); border-right: 1px solid var(--line-2); font: 700 10px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); }
+.logbar-h span { color: var(--faint); font-weight: 400; letter-spacing: .1em; }
+.logbar .log { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: stretch; overflow-x: auto; overflow-y: hidden; padding: 0; scroll-behavior: smooth; }
+.logbar .log::-webkit-scrollbar { height: 6px; }
+.logbar .lg { flex: none; width: 300px; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: var(--s2) var(--s4); border-right: 1px solid var(--line); }
+.logbar .lg-t { font-size: 10px; }
+.logbar .lg-top { display: flex; gap: var(--s2); align-items: center; }
+.logbar .lg-m { font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.logbar .lg-day { flex: none; writing-mode: vertical-rl; transform: rotate(180deg); padding: var(--s2) 6px; font-size: 9px; border-right: 1px solid var(--line); }
+.app.on .status, .app.on > .term, .app.on .logbar { animation: materialize .7s cubic-bezier(.2, .8, .2, 1) both; }
+.app.on > .term { animation-delay: .12s; }
+.app.on .logbar { animation-delay: .24s; }
+
+/* 창이 열릴 때 쏟아지는 글자 비 (Control 이 여는 연출) */
+.rain-open { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 65; pointer-events: none; display: none; }
+.rain-open.on { display: block; }
+.module.opening .mod-win, .modal.opening .dialog { animation: rain-reveal .75s cubic-bezier(.3, .7, .2, 1) both; }
+@keyframes rain-reveal { 0% { opacity: 0; clip-path: inset(0 0 100% 0); } 35% { opacity: .35; } 100% { opacity: 1; clip-path: inset(0 0 0 0); } }
+
+@media (max-width: 900px) {
+  .st-meta span:nth-child(1), .st-meta span:nth-child(3) { display: none; }
+  .app > .term .term-out { padding: var(--s3) var(--s4) var(--s2); }
+  .app > .term .term-line { padding: var(--s2) var(--s4) var(--s3); }
+  .status { padding: var(--s3) var(--s4) var(--s2); }
+}
+@media (max-width: 560px) {
+  .st-sub { display: none; }
+  .st-meta { gap: var(--s3); }
+  .logbar { height: 70px; }
+  .logbar-h { padding: 0 var(--s3); }
+  .logbar .lg { width: 230px; }
+}

@@ -3,6 +3,18 @@
   'use strict';
   var R = window.RSS = {};
 
+  /* ── 언어: 기본 한국어, 'Eng' 명령으로 영어. 선택은 이 PC 에 기억 ── */
+  R.lang = (function () { try { return localStorage.getItem('rss-lang') === 'en' ? 'en' : 'ko'; } catch (e) { return 'ko'; } })();
+  R.T = function (ko, en) { return R.lang === 'en' ? en : ko; };
+  var langListeners = [];
+  R.onLang = function (fn) { langListeners.push(fn); };
+  R.setLang = function (l) {
+    R.lang = l === 'en' ? 'en' : 'ko';
+    try { localStorage.setItem('rss-lang', R.lang); } catch (e) {}
+    document.documentElement.lang = R.lang;
+    langListeners.forEach(function (fn) { fn(R.lang); });
+  };
+
   /* ── DOM ── */
   R.$ = function (s, el) { return (el || document).querySelector(s); };
   R.$$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
@@ -37,19 +49,21 @@
   };
 
   /* ── 유형 / 보안등급 ── */
+  // name 은 현재 언어에 따라 바뀜
+  var bi = function (o) { Object.defineProperty(o, 'name', { get: function () { return R.lang === 'en' ? o.en : o.ko; } }); return o; };
   R.TYPES = [
-    { id: 'character', code: 'CHR', name: '인물' },
-    { id: 'organization', code: 'ORG', name: '조직' },
-    { id: 'location', code: 'LOC', name: '장소' },
-    { id: 'item', code: 'ITM', name: '물품' },
-    { id: 'lore', code: 'LOR', name: '세계관' }
+    bi({ id: 'character', code: 'CHR', ko: '인물', en: 'Character' }),
+    bi({ id: 'organization', code: 'ORG', ko: '조직', en: 'Organization' }),
+    bi({ id: 'location', code: 'LOC', ko: '장소', en: 'Location' }),
+    bi({ id: 'item', code: 'ITM', ko: '물품', en: 'Item' }),
+    bi({ id: 'lore', code: 'LOR', ko: '세계관', en: 'Lore' })
   ];
   R.type = function (id) { return R.TYPES.find(function (t) { return t.id === id; }) || R.TYPES[0]; };
   R.CLEAR = [
-    { n: 0, name: '공개', code: 'UNCLASSIFIED' },
-    { n: 1, name: '대외비', code: 'RESTRICTED' },
-    { n: 2, name: '기밀', code: 'SECRET' },
-    { n: 3, name: '극비', code: 'TOP SECRET' }
+    bi({ n: 0, ko: '공개', en: 'Unclassified', code: 'UNCLASSIFIED' }),
+    bi({ n: 1, ko: '대외비', en: 'Restricted', code: 'RESTRICTED' }),
+    bi({ n: 2, ko: '기밀', en: 'Secret', code: 'SECRET' }),
+    bi({ n: 3, ko: '극비', en: 'Top secret', code: 'TOP SECRET' })
   ];
   R.STATUS = ['활동', '잠적', '구금', '사망', '불명', '해당 없음'];
 
@@ -155,28 +169,29 @@
 
   /* ── 봉인 문서: 앱에 내장된 미완성 문서. 목록에는 보이지만 열람 승인이 없어 내용은 열리지 않음 ── */
   R.SEALED = [
-    { sealed: true, id: 'sealed-iarchi', code: 'LOR-IA01', type: 'lore', name: 'I Archi(이아키) 행성', alias: 'I ARCHI',
-      clearance: 3, status: '미완성 · 승인 대기', match: /(i\s*-?\s*archi|이아키|아이\s*아키)/i }
+    { sealed: true, id: 'sealed-iarchi', code: 'LOR-IA01', type: 'lore', ko: 'I Archi(이아키) 행성', en: 'Planet I Archi', alias: 'I ARCHI',
+      clearance: 3, statusKo: '미완성 · 승인 대기', statusEn: 'Draft · awaiting approval', match: /(i\s*-?\s*archi|이아키|아이\s*아키)/i }
   ];
+  R.SEALED.forEach(function (o) {
+    Object.defineProperty(o, 'name', { get: function () { return R.lang === 'en' ? o.en : o.ko; } });
+    Object.defineProperty(o, 'status', { get: function () { return R.lang === 'en' ? o.statusEn : o.statusKo; } });
+  });
   R.sealedIn = function (text) { return R.SEALED.filter(function (s) { return s.match.test(text); }); };
 
   /* ── 이전 버전의 '예시 기록' 정리: 예시와 이름·요약이 정확히 같은 것만 지움 (사용자가 만든 기록은 그대로) ── */
-  var SAMPLE_FP = [
-    ['한서윤', '북부 지부 현장 요원. 장거리 감시 전문.'], ['북부 지부', '국경 지역 정보 수집을 담당하는 지부.'],
-    ['미상의 접촉자', '신원 미확인. 항만 지역에서 반복 목격.'], ['항만 7번 창고', '접촉이 이루어진 장소.'],
-    ['보안 등급 체계', '공개 · 대외비 · 기밀 · 극비 4단계.']
-  ];
-  var SAMPLE_EV = [['2024-03-11', 'KESTREL 귀환'], ['2024-03-14', '항만 7번 창고 접촉'], ['2024-03-20', '북부 지부 감시 작전 승인']];
+  // 예시로 만들었던 이름 · 유형 조합 (요약을 고쳤더라도 지움: 사용자 요청 "아카이브에 예시 전부 없애줘")
+  var SAMPLE_FP = [['한서윤', 'character'], ['북부 지부', 'organization'], ['미상의 접촉자', 'character'], ['항만 7번 창고', 'location'], ['보안 등급 체계', 'lore']];
+  var SAMPLE_EV = ['KESTREL 귀환', '항만 7번 창고 접촉', '북부 지부 감시 작전 승인'];
   R.purgeSamples = function (db) {
     var gone = {};
     db.entities = db.entities.filter(function (e) {
-      var hit = SAMPLE_FP.some(function (f) { return e.name === f[0] && e.summary === f[1]; });
+      var hit = SAMPLE_FP.some(function (f) { return e.name === f[0] && e.type === f[1]; });
       if (hit) gone[e.id] = 1;
       return !hit;
     });
     var n = Object.keys(gone).length, before = db.events.length;
     db.links = db.links.filter(function (l) { return !gone[l.a] && !gone[l.b]; });
-    db.events = db.events.filter(function (v) { return !SAMPLE_EV.some(function (s) { return v.date === s[0] && v.title === s[1]; }); });
+    db.events = db.events.filter(function (v) { return SAMPLE_EV.indexOf(v.title) < 0; });
     db.events.forEach(function (v) { v.entities = v.entities.filter(function (id) { return !gone[id]; }); });
     return n + (before - db.events.length);
   };
@@ -219,9 +234,8 @@
   /* ── 효과음: WebAudio 사각파 짧은 비프. 기본 꺼짐, 메인 화면 SOUND 버튼으로만 조절 ── */
   var ctx = null, noiseBuf = null, master = null;
   R.sound = {
-    // 기본값: 켜짐 (메인 화면 SOUND 버튼으로 끌 수 있고, 선택은 기억됨)
-    on: (function () { try { return localStorage.getItem('rss-sound') !== '0'; } catch (e) { return true; } })(),
-    set: function (v) { this.on = v; try { localStorage.setItem('rss-sound', v ? '1' : '0'); } catch (e) {} },
+    // 소리는 항상 켜짐 (끄는 버튼 없음)
+    on: true,
     beep: function (freq, dur, vol, when) {
       if (!this.on) return;
       try {
