@@ -109,7 +109,7 @@
   var TYPE_WORDS = [
     ['character', /(인물|사람|캐릭터|요원|인간|\bcharacters?\b|\bperson\b|\bpeople\b|\bagent\b)/i], ['organization', /(조직|단체|세력|기관|부대|회사|\borg(anization)?s?\b|\bgroup\b|\bfaction\b)/i],
     ['location', /(장소|지역|위치|건물|도시|기지|\blocations?\b|\bplaces?\b|\barea\b)/i], ['item', /(물품|아이템|물건|장비|무기|도구|\bitems?\b|\bobject\b|\bweapon\b)/i],
-    ['lore', /(세계관|설정|역사|규칙|로어|용어|\blore\b|\bworld\b|\bhistory\b)/i], ['event', /(사건|이벤트|일어난 일|\bevents?\b)/i]
+    ['planet', /(행성|\bplanets?\b)/i], ['event', /(사건|이벤트|일어난 일|\bevents?\b)/i]
   ];
   function typeOf(t) { for (var i = 0; i < TYPE_WORDS.length; i++) if (TYPE_WORDS[i][1].test(t)) return TYPE_WORDS[i][0]; return null; }
   function clearanceOf(t) {

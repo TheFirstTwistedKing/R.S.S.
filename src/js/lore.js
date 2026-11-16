@@ -5,7 +5,7 @@
    entities 한 개의 형식
    {
      id: 'chr-raven',            // 고유 이름 (영문 · 숫자 · - 만, 관계 · 사건에서 이 id 로 가리킴)
-     type: 'character',          // character 인물 · organization 조직 · location 장소 · item 물품 · lore 세계관
+     type: 'character',          // character 인물 · organization 조직 · location 장소 · item 물품 · planet 행성
      no: 1,                      // 문서 번호 → 코드 CHR-0001
      name: '이름',
      alias: '별칭 · 코드네임',   // 없으면 ''

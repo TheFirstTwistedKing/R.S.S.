@@ -106,8 +106,8 @@
     function shape(t, x, y, s, fill, stroke) {
       g.fillStyle = fill; g.strokeStyle = stroke; g.lineWidth = 2;
       var r = Math.round;
-      if (t === 'organization' || t === 'lore') {
-        if (t === 'lore') { g.save(); g.translate(r(x), r(y)); g.rotate(Math.PI / 4); g.fillStyle = C.bg; g.fillRect(-s * .7, -s * .7, s * 1.4, s * 1.4); g.strokeRect(-s * .7, -s * .7, s * 1.4, s * 1.4); g.restore(); return; }
+      if (t === 'organization' || t === 'planet') {
+        if (t === 'planet') { g.save(); g.translate(r(x), r(y)); g.rotate(Math.PI / 4); g.fillStyle = C.bg; g.fillRect(-s * .7, -s * .7, s * 1.4, s * 1.4); g.strokeRect(-s * .7, -s * .7, s * 1.4, s * 1.4); g.restore(); return; }
         g.fillStyle = C.bg; g.fillRect(r(x - s), r(y - s), s * 2, s * 2); g.strokeRect(r(x - s) + 1, r(y - s) + 1, s * 2 - 2, s * 2 - 2); return;
       }
       if (t === 'location') { g.save(); g.translate(r(x), r(y)); g.rotate(Math.PI / 4); g.fillRect(-s * .75, -s * .75, s * 1.5, s * 1.5); g.restore(); return; }

@@ -56,7 +56,7 @@
     bi({ id: 'organization', code: 'ORG', ko: '조직', en: 'Organization' }),
     bi({ id: 'location', code: 'LOC', ko: '장소', en: 'Location' }),
     bi({ id: 'item', code: 'ITM', ko: '물품', en: 'Item' }),
-    bi({ id: 'lore', code: 'LOR', ko: '세계관', en: 'Lore' })
+    bi({ id: 'planet', code: 'PLN', ko: '행성', en: 'Planet' })
   ];
   R.type = function (id) { return R.TYPES.find(function (t) { return t.id === id; }) || R.TYPES[0]; };
   R.CLEAR = [
@@ -179,7 +179,7 @@
 
   /* ── 봉인 문서: 앱에 내장된 미완성 문서. 목록에는 보이지만 열람 승인이 없어 내용은 열리지 않음 ── */
   R.SEALED = [
-    { sealed: true, id: 'sealed-iarchi', code: 'LOR-IA01', type: 'lore', ko: 'I Archi(이아키) 행성', en: 'Planet I Archi', alias: 'I ARCHI',
+    { sealed: true, id: 'sealed-iarchi', code: 'PLN-IA01', type: 'planet', ko: 'I Archi(이아키) 행성', en: 'Planet I Archi', alias: 'I ARCHI',
       clearance: 3, statusKo: '미완성 · 승인 대기', statusEn: 'Draft · awaiting approval', match: /(i\s*-?\s*archi|이아키|아이\s*아키)/i }
   ];
   R.SEALED.forEach(function (o) {
