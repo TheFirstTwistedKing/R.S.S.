@@ -20,19 +20,26 @@
 ## 화면
 
 - **잠금 인트로**: 실행할 때마다 홀로그램 문장(방패·날개), 회전하는 지구본, 숫자 자판이 나오고 접속 코드를 입력해야 열립니다. 첫 실행 때 4~8자리 코드를 정합니다.
-- **메인**: 터미널 창 + 시스템 로그 창. 모든 작업은 터미널 명령으로 합니다 (`help` 로 목록 확인).
+- **메인**: 터미널 모양의 대화창 + 시스템 로그 창. 명령어 없이 말로 요청합니다.
 
-## 터미널 명령
+## Control · Apex
 
-| 분류 | 명령 |
+| AI | 역할 |
 |---|---|
-| 조회 | `ls [유형]` · `find <키워드>` · `cat <대상>` · `links <대상>` · `events [대상]` · `stat` |
-| 기록 | `new [유형]` · `edit <대상>` · `rm <대상>` · `link <A> <B> [관계]` · `unlink <A> <B>` · `sample` |
-| 모듈 창 | `files` · `graph [대상]` · `timeline` · `security` |
-| 보안 | `passwd` · `export [--plain]` · `import` · `lock` (Ctrl+L) |
-| 시스템 | `help` · `clear` · `log clear` · `history` · `whoami` · `date` |
+| **Control** | 사용자와 대화하는 AI. 요청을 받아 Apex 에게 일을 시킵니다. |
+| **Apex** | 정보 관리 전용 AI. 문서 템플릿을 채우고, 빠진 항목은 Control 에게 요청합니다. |
 
-유형: `chr`(인물) `org`(조직) `loc`(장소) `itm`(물품) `lor`(세계관). 대상은 코드(`CHR-0001`, `chr-1`)·이름·별칭으로 지정합니다. 한글 명령(`목록`, `열람`, `관계도` 등)도 됩니다.
+문서 작성 흐름: 사용자 → Control("Apex 에게 맡기겠습니다") → Apex(템플릿 전개, 누락 항목 보고) → Control(사용자에게 하나씩 질문) → Apex(문서 등록)
+
+말하는 예:
+
+- "인물 문서 만들어줘" · "이름은 한서윤이고 별칭은 KESTREL인 극비 인물 만들어줘" · "사건 기록해줘"
+- 작성 중: "없음"(건너뛰기) · "여기까지"(마무리) · "취소"
+- "한서윤 보여줘" · "목록 보여줘" · "인물 목록" · "항만 검색해줘" · "사건 목록" · "현황 알려줘"
+- "한서윤 상태를 사망으로 바꿔줘" · "한서윤과 북부 지부를 소속으로 연결해줘" · "항만 7번 창고 삭제해줘"
+- "관계도 열어줘" · "타임라인" · "파일 창" · "보안 설정" · "백업해줘" · "코드 바꿔줘" · "잠가줘"
+
+Control·Apex 는 인터넷이나 외부 AI 를 쓰지 않는 앱 안의 규칙 기반 대화입니다. 대사는 `src/js/dialogue.js` 한 파일에 모여 있어 그 파일만 고치면 바뀝니다.
 
 모든 기록과 로그는 접속 코드로 AES-256-GCM 암호화되어 `%APPDATA%\R.S.S.\rss-vault.json` 에만 저장됩니다. 코드를 잊으면 복구할 수 없습니다.
 
@@ -44,7 +51,7 @@ npm start          # 앱 실행
 npm run dist       # Windows exe 빌드 (Windows에서 실행)
 ```
 
-`main` 으로 가는 PR 은 Windows 빌드만 확인하고, `main` 에 병합되면 GitHub Actions가 exe를 빌드해 `package.json` 버전으로 Release(`v2.1.0` 등)에 올립니다. 새 릴리즈를 만들려면 `version` 을 올려서 병합하세요.
+`main` 으로 가는 PR 은 Windows 빌드만 확인하고, `main` 에 병합되면 GitHub Actions가 exe를 빌드해 `package.json` 버전으로 Release(`v3.0.0` 등)에 올립니다. 새 릴리즈를 만들려면 `version` 을 올려서 병합하세요.
 
 아이콘은 `src/js/emblem.js` 벡터 문장으로 만들어집니다. 문장을 바꿨다면 `node scripts/make-icon.js` (playwright, png-to-ico 필요)로 `build/icon.ico`를 다시 생성합니다.
 

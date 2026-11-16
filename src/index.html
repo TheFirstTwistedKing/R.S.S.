@@ -71,13 +71,13 @@
     </div>
   </header>
   <main class="desk">
-    <section class="win win-term" aria-label="터미널">
-      <div class="win-h"><span class="win-k">TTY-0</span><span class="win-t">TERMINAL</span><span class="win-s">SECURE SHELL // ENCRYPTED SESSION</span><span class="win-led"></span></div>
+    <section class="win win-term" aria-label="대화창">
+      <div class="win-h"><span class="win-k">LINK-0</span><span class="win-t">CONTROL // APEX</span><span class="win-s">ENCRYPTED CHANNEL · 2 AI ONLINE</span><span class="win-led"></span></div>
       <div class="term" id="term">
         <div class="term-out" id="termOut" aria-live="polite"></div>
         <form class="term-line" id="termForm" autocomplete="off">
-          <label class="term-ps" for="termIn" id="termPs">agent@rss:~$</label>
-          <input class="term-in" id="termIn" spellcheck="false" autocomplete="off" autocapitalize="off" enterkeyhint="send">
+          <label class="term-ps" for="termIn" id="termPs">USER ▸</label>
+          <input class="term-in" id="termIn" spellcheck="false" autocomplete="off" autocapitalize="off" enterkeyhint="send" placeholder="Control 에게 말하기 · Enter 전송">
         </form>
       </div>
     </section>
@@ -89,10 +89,10 @@
   </main>
 </div>
 
-<!-- 모듈 창: 터미널 명령으로 열림 -->
+<!-- 모듈 창: Control 에게 요청하면 열림 -->
 <div id="module" class="module" hidden>
   <div class="mod-win">
-    <div class="win-h mod-h"><span class="win-k" id="modK">MOD</span><span class="win-t" id="modT">MODULE</span><span class="win-s">ESC 로 닫고 터미널로 복귀</span><button class="mod-x" id="modX" type="button" aria-label="닫기">CLOSE ✕</button></div>
+    <div class="win-h mod-h"><span class="win-k" id="modK">MOD</span><span class="win-t" id="modT">MODULE</span><span class="win-s">ESC 로 닫고 대화창으로 복귀</span><button class="mod-x" id="modX" type="button" aria-label="닫기">CLOSE ✕</button></div>
     <div class="mod-body" id="view"></div>
   </div>
 </div>
@@ -101,12 +101,16 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="js/emblem.js"></script>
+<script src="js/star.js"></script>
+<script src="js/cursor.js"></script>
 <script src="js/core.js"></script>
+<script src="js/decode.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/intro.js"></script>
 <script src="js/views.js"></script>
 <script src="js/graph.js"></script>
-<script src="js/terminal.js"></script>
+<script src="js/dialogue.js"></script>
+<script src="js/chat.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

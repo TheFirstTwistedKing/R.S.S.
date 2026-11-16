@@ -197,6 +197,7 @@
           }))));
       }
       detailPane.appendChild(doc2);
+      R.decodeTree(doc2, '.dz-id span, .dz-title, .dz-alias, .dz-summary, .facts > div, .ln-name, .ln-id, .ln-rel, .label', 35);
     }
 
     function removeEntity(e) {
@@ -274,6 +275,7 @@
     }
 
     function draw() { drawTabs(); drawList(); drawDetail(); }
+    R.decodeTree(listPane, '.item-t, .item-s', 40);
     draw();
   };
 
@@ -355,6 +357,7 @@
               return h('button', { class: 'ev-ent', type: 'button', onclick: function () { R.go('files', { select: id }); } }, e.name);
             })) : null)));
       });
+      R.decodeTree(list, '.ev-date, .ev-card h4, .ev-card p', 40);
     }
     drawList();
   };
@@ -437,6 +440,7 @@
         h('button', { class: 'btn danger', type: 'button', onclick: wipe }, '모든 기록 삭제'))));
 
     inner.appendChild(h('p', { class: 'hint' }, 'R.S.S. v' + R.version + ' · 글꼴: Pretendard, D2Coding, Galmuri(접속 코드 숫자) — SIL OFL 1.1'));
+    R.decodeTree(inner, '.stat b, .stat span, .panel h3, .panel p', 45);
   };
 
   R.actions = { changeCode: changeCode, exportEnc: exportEnc, exportPlain: exportPlain, importBackup: importBackup };
