@@ -12,7 +12,7 @@
   var renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.6));
   renderer.setSize(innerWidth, innerHeight);
-  renderer.outputEncoding = T.sRGBEncoding;
+  renderer.outputEncoding = T.LinearEncoding;   // 마지막 색 보정 패스에서 sRGB 로 변환
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -81,10 +81,12 @@
     '  return mix(mix(hh(i), hh(i + vec2(1.0, 0.0)), f.x), mix(hh(i + vec2(0.0, 1.0)), hh(i + vec2(1.0, 1.0)), f.x), f.y); }'
   ].join('\n');
   /* kind: 'panel' 벽 패널 이음새 · 'snow' 지형 바람결과 절벽 지층 · 'plain' 계조와 가장자리 빛만 */
+  var SUNVIEW = { value: new T.Vector3(0, 1, 0) };
   function enhance(mat, kind, rim) {
     mat.customProgramCacheKey = function () { return 'rss-' + kind; };
     mat.onBeforeCompile = function (sh) {
       sh.uniforms.rimCol = { value: new T.Color(0xdfe9ff).multiplyScalar(rim == null ? 0.16 : rim) };
+      sh.uniforms.sunView = SUNVIEW;
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal);');
@@ -101,22 +103,24 @@
         'float rock = 1.0 - smoothstep(0.55, 0.95, vColor.r);',
         'float st = vn(vec2(vWP.x * 0.035 + vWP.z * 0.01, vWP.z * 0.22));',
         'diffuseColor.rgb *= 1.0 - 0.045 * st * (1.0 - rock);',
+        'snowSheen = (1.0 - rock);',
         'float band = abs(fract(vWP.y * 0.3 + vn(vWP.xz * 0.07) * 2.6 + vn(vWP.xz * 0.3) * 0.4) - 0.5);',
         'float strata = (1.0 - smoothstep(0.06, 0.16, band)) * smoothstep(0.35, 0.6, vn(vec2(vWP.x * 0.15, vWP.y * 0.5)));',
         'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.2, 0.23, 0.3), strata * rock * 0.55);'
       ].join('\n');
       sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform vec3 rimCol;\n' + GLSL_NOISE)
+        .replace('#include <common>', '#include <common>\nuniform vec3 rimCol; uniform vec3 sunView; float snowSheen = 0.0;\n' + GLSL_NOISE)
         .replace('return vec3( texture2D( gradientMap, coord ).r );', 'return texture2D( gradientMap, coord ).rgb;')
         .replace('#include <color_fragment>', '#include <color_fragment>\n' + detail)
         .replace('#include <output_fragment>',
-          'float fr = 1.0 - max(dot(normalize(vViewPosition), normal), 0.0);\noutgoingLight += rimCol * smoothstep(0.62, 0.68, fr) * diffuseColor.rgb;\n#include <output_fragment>');
+          'float fr = 1.0 - max(dot(normalize(vViewPosition), normal), 0.0);\noutgoingLight += rimCol * smoothstep(0.62, 0.68, fr) * diffuseColor.rgb;\n' +
+          'float sp = pow(max(dot(reflect(-sunView, normal), normalize(vViewPosition)), 0.0), 18.0);\noutgoingLight += vec3(1.0, 0.97, 0.92) * smoothstep(0.45, 0.5, sp) * 0.09 * snowSheen;\n#include <output_fragment>');
     };
     return mat;
   }
   var toon = function (c, extra, kind, rim) { return enhance(new T.MeshToonMaterial(Object.assign({ color: c, gradientMap: gradMap }, extra || {})), kind || 'plain', rim); };
   var M = {
-    snow: toon(0xf1f4fa), wall: toon(0x2a2e34, null, 'panel', 0.3), wallD: toon(0x24272c, null, 'panel', 0.3), red: toon(0x7a2a1a, null, 'panel', 0.25),
+    snow: toon(0xf1f4fa), wall: toon(0x24272c, null, 'panel', 0.3), wallD: toon(0x24272c, null, 'panel', 0.3), red: toon(0x6a2416, null, 'panel', 0.25),
     steel: toon(0x2c3036, null, 'plain', 0.35), roof: toon(0xf6f8fc), dome: toon(0xf3f5f9, { flatShading: true }, 'plain', 0.08), dark: toon(0x2c3036, null, 'plain', 0.3), wood: toon(0x4a4038),
     glow: new T.MeshBasicMaterial({ color: 0xffd889, toneMapped: false }), door: toon(0x484d55, null, 'panel', 0.3)
   };
@@ -139,26 +143,34 @@
     var amp = 0.9 + 0.7 * Math.sin(x * 0.021 - z * 0.033);
     return (prof * prof * (3 - 2 * prof) - 0.5) * amp;
   }
+  // 골짜기 중심선: [x, z, 깊이, 반폭]. 사진처럼 왼쪽 뒤에서 본관 뒤를 돌아 통로 밑을 지나 앞 오른쪽으로 얕아짐
+  var CH = [[-150, -104, 15, 10], [-62, -64, 15, 9], [-32, -36, 12, 7.5], [-10, -18, 8, 6], [2, -8, 6, 5.5], [10, 3, 4.5, 5], [16, 12, 3.2, 4.5], [21, 20, 1.6, 4], [25, 27, 0, 3.5]];
+  function channel(x, z) {
+    var best = 1e9, dep = 0, hw = 1;
+    for (var i = 0; i < CH.length - 1; i++) {
+      var a = CH[i], b = CH[i + 1], dx = b[0] - a[0], dz = b[1] - a[1];
+      var t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz)));
+      var px = a[0] + dx * t - x, pz = a[1] + dz * t - z, d = Math.sqrt(px * px + pz * pz);
+      if (d < best) { best = d; dep = a[2] + (b[2] - a[2]) * t; hw = a[3] + (b[3] - a[3]) * t; }
+    }
+    var wob = 1 + 0.12 * Math.sin(x * 0.21 + z * 0.13);       // 벽이 곧지 않게
+    var r = best / (hw * wob); if (r >= 1) return 0;
+    var f = 1 - r <= 0 ? 0 : 1 - smooth(0.32, 1.0, r);
+    return dep * f;
+  }
+  function smooth(a, b, v) { var t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }
   function height(x, z) {
     var y = n2(x, z) * 1.6 + dune(x, z);
     y += Math.sin(x * 0.55 + z * 0.35) * 0.12 + Math.sin(x * 0.9 - z * 0.6) * 0.07;      // 바람결 (잔물결)
     y += 13 * gauss(x, z, 70, -112, 24) + 6 * gauss(x, z, 95, -100, 30) + 3.5 * gauss(x, z, 40, -118, 22) + 2.5 * gauss(x, z, -20, -140, 50);   // 오른쪽 언덕 · 낮은 능선
-    y += 0.8 * gauss(x, z, 17, -15, 13) + 1.2 * gauss(x, z, 32, -13, 9);                  // 오른쪽 건물 · 창고 둔덕
+    y += 0.8 * gauss(x, z, 19, -8, 11) + 1.2 * gauss(x, z, 35, -8, 8);                  // 오른쪽 건물 · 창고 둔덕
     y += 4.5 * gauss(x, z, -42, 30, 14) + 5.5 * gauss(x, z, 44, 34, 18) + 3 * gauss(x, z, 20, 40, 10);   // 앞쪽 큰 눈더미
-    // 본관 뒤를 지나는 골짜기: 먼 쪽 벽이 가파른 절벽
-    var cz = -60 + 0.5 * (x + 40) + 2.5 * Math.sin(x * 0.07);
-    if (x < 16 && x > -170) {
-      var t = (z - cz) / 8, fade = Math.min(1, (16 - x) / 18);
-      y -= 15 * Math.exp(-t * t * (t < 0 ? 5 : 0.6)) * fade;
-    }
-    // 연결 통로 아래에서 앞 오른쪽으로 내려가는 눈 협곡
-    var gx = x - 2, gz = z + 2, along = (gx * 0.75 + gz * 0.66), across = (-gx * 0.66 + gz * 0.75);
-    if (along > -4 && along < 34) y -= 2.8 * Math.exp(-across * across / 7) * Math.min(1, (along + 4) / 6) * Math.min(1, (34 - along) / 8);
-    var pad = Math.max(gauss(x, z, -14, 1, 15), gauss(x, z, 16, -14, 12), gauss(x, z, 31, -12, 6), gauss(x, z, -6, 9, 8));
-    return y * (1 - 0.8 * pad) + pad * (gauss(x, z, 16, -14, 12) * 0.8 + gauss(x, z, 31, -12, 6) * 1.2);
+    y -= channel(x, z);
+    var pad = Math.max(gauss(x, z, -14, 1, 15), gauss(x, z, 18, -7, 10), gauss(x, z, 35, -7, 6), gauss(x, z, -6, 9, 8));
+    return y * (1 - 0.8 * pad) + pad * (gauss(x, z, 18, -7, 10) * 0.8 + gauss(x, z, 35, -7, 6) * 1.2);
   }
   (function terrain() {
-    var seg = mobile ? 130 : 180, size = 420;
+    var seg = mobile ? 240 : 400, size = 420;
     var g = new T.PlaneGeometry(size, size, seg, seg); g.rotateX(-Math.PI / 2);
     var p = g.attributes.position;
     for (var i = 0; i < p.count; i++) p.setY(i, height(p.getX(i), p.getZ(i)));
@@ -312,9 +324,12 @@
     drift(x - 4, z + d / 2 + 1.2, 6, 1.4, 2.2); drift(x + 5, z - d / 2 - 1, 5, 1.2, 2);
   })();
 
+  // 오른쪽 건물 자리 (통로 끝을 여기에 맞춤): 사진처럼 앞으로 나와 있고 왼쪽 기둥이 골짜기 비탈에 섬
+  var EAST = { x: 18, z: -7, w: 15 }; EAST.base = groundAt(18, -7) + 2.6;
+
   /* ───────── 앞 단층 별관 (눈 덮인 지붕, 오른쪽 계단) ───────── */
   (function annex() {
-    var x = -6.5, z = 8.5, base = 0.9, w = 9, d = 5.4, h = 2.9;
+    var x = -5, z = 8.5, base = groundAt(-5, 8.5) + 1.7, w = 9, d = 5.4, h = 2.9;
     stilts(x - w / 2 + 0.5, x + w / 2 - 0.5, z - d / 2 + 0.5, z + d / 2 - 0.5, base, 4, 2);
     box(w, h, d, M.wall, x, base + h / 2, z);
     box(w + 0.05, 0.22, d + 0.05, M.wallD, x, base + 0.1, z);
@@ -327,8 +342,8 @@
 
   /* ───────── 연결 통로 (트러스 다리 위) ───────── */
   (function walkway() {
-    var A = new T.Vector3(-8.4, 5.0, -3.4), B = new T.Vector3(9.4, 5.3, -13.4);
-    var dir = new T.Vector3().subVectors(B, A), len = dir.length(), d = 2.5, h = 2.3;
+    var A = new T.Vector3(-8.4, 4.4, -3.4), B = new T.Vector3(EAST.x - EAST.w / 2 + 0.2, EAST.base + 0.4, EAST.z - 0.6);
+    var dir = new T.Vector3().subVectors(B, A), len = dir.length(), d = 2.5, h = 2.1;
     var g = new T.Group(); g.position.copy(A);
     g.quaternion.setFromUnitVectors(new T.Vector3(1, 0, 0), dir.clone().normalize());
     scene.add(g);
@@ -359,7 +374,7 @@
 
   /* ───────── 오른쪽 건물 (기둥 위, 지붕 안테나, 계단) ───────── */
   (function east() {
-    var x = 16.5, z = -14.5, base = 2.4, w = 14, d = 7, h = 3.3;
+    var x = EAST.x, z = EAST.z, base = EAST.base, w = EAST.w, d = 7, h = 3.6;
     stilts(x - w / 2 + 0.5, x + w / 2 - 0.5, z - d / 2 + 0.5, z + d / 2 - 0.5, base, 5, 3);
     box(w, 0.3, d, M.steel, x, base + 0.15, z);
     box(w, h, d, M.wall, x, base + 0.3 + h / 2, z);
@@ -379,7 +394,7 @@
 
   /* ───────── 작은 창고 · 마스트 · 울타리 ───────── */
   (function outskirts() {
-    var x = 31.5, z = -12.5, base = groundAt(31.5, -12.5) + 0.8;
+    var x = 35, z = -7, base = groundAt(35, -7) + 0.8;
     stilts(x - 2, x + 2, z - 1.3, z + 1.3, base, 2, 2);
     box(5, 2.6, 3.4, M.wall, x, base + 1.3, z);
     windows(x - 0.8, base + 1.5, z + 1.7, 'z', 1, 0, 0.8, 0.6);
@@ -392,7 +407,7 @@
     // 기울어진 나무 울타리 (오른쪽으로 이어짐)
     var prev = null;
     for (var i = 0; i < 12; i++) {
-      var fx = 37 + i * 2.0, fz = -9.5 - i * 0.25 + Math.sin(i * 1.7) * 0.4, gy = groundAt(fx, fz);
+      var fx = 39.5 + i * 1.7, fz = -6.2 + i * 0.35 + Math.sin(i * 1.7) * 0.3, gy = groundAt(fx, fz);
       var post = box(0.22, 1.7, 0.22, M.wood, fx, gy + 0.6, fz);
       post.rotation.z = Math.sin(i * 2.3) * 0.12; post.rotation.x = Math.cos(i * 1.9) * 0.08;
       var top = new T.Vector3(fx, gy + 1.35, fz);
@@ -412,10 +427,10 @@
 
   /* ───────── 발자국 · 사람 하나 ───────── */
   (function details() {
-    var dot = new T.CircleGeometry(0.22, 8), dm = new T.MeshBasicMaterial({ color: 0x9aa6ba });
+    var dot = new T.CircleGeometry(0.22, 10).scale(0.75, 1.5, 1), dm = new T.MeshBasicMaterial({ color: 0xb4bfd0 });
     dm.userData.outlineParameters = NO_OUTLINE;
-    for (var i = 0; i < 70; i++) {
-      var t = i / 70, x = 2 + t * 24 + Math.sin(i) * 0.3, z = 12 + t * 8 + Math.sin(t * 5) * 1.5 + (i % 2 ? 0.4 : -0.4);
+    for (var i = 0; i < 38; i++) {
+      var t = i / 38, x = 2 + t * 24 + Math.sin(i) * 0.3, z = 12 + t * 8 + Math.sin(t * 5) * 1.5 + (i % 2 ? 0.4 : -0.4);
       var m = new T.Mesh(dot, dm); m.rotation.x = -Math.PI / 2; m.position.set(x, groundAt(x, z) + 0.05, z); put(m);
     }
     var px = 11, pz = 15, gy = groundAt(px, pz);
@@ -449,6 +464,11 @@
     return { p: p, pos: pos, spd: spd, n: n };
   })();
 
+  /* ───────── 창에서 새어나오는 따뜻한 빛 (눈 위에 둥근 빛 웅덩이) ───────── */
+  [[-15, 2.6, 3.2], [-15, 5.8, 2.6], [-5, 3.4, 12.3], [18, 4.8, -2.6], [35, 2.8, -4.8], [1, 5.2, -4.2], [-22.5, 2.6, -2]].forEach(function (q) {
+    var l = new T.PointLight(0xffb469, 1.25, 11, 2); l.position.set(q[0], q[1] + (q === undefined ? 0 : 0), q[2]); scene.add(l);
+  });
+
   /* ───────── 창 빛무리: 부드러운 원형 번짐 (깜빡이지 않음) ───────── */
   (function halos() {
     var c = document.createElement('canvas'); c.width = c.height = 64;
@@ -462,8 +482,58 @@
     var pts = new T.Points(geo, mat); pts.renderOrder = 2; scene.add(pts);
   })();
 
+  /* ───────── 골짜기와 먼 들판에 깔린 낮은 안개 ───────── */
+  var mists = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d');
+    for (var i = 0; i < 26; i++) {
+      var x = 30 + Math.random() * 196, y = 70 + Math.random() * 116, r = 30 + Math.random() * 60;
+      var rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, 'rgba(236,241,248,0.32)'); rg.addColorStop(1, 'rgba(236,241,248,0)');
+      g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+    }
+    var tex = new T.CanvasTexture(c), list = [];
+    [[-60, -66, -9, 70, 22], [-30, -40, -7, 50, 18], [-110, -88, -10, 80, 26], [6, -6, -2.5, 26, 12], [90, -150, 4, 160, 40], [-60, -170, 3, 180, 46]].forEach(function (q) {
+      var m = new T.Mesh(new T.PlaneGeometry(q[3], q[4]), new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.85 }));
+      m.material.userData.outlineParameters = NO_OUTLINE;
+      m.position.set(q[0], q[2], q[1]); m.rotation.x = -Math.PI / 2 + 0.18; m.renderOrder = 3; scene.add(m);
+      list.push({ m: m, x0: q[0], sp: 0.4 + Math.random() * 0.5 });
+    });
+    return list;
+  })();
+
   /* ───────── 외곽선 (셀 셰이딩 윤곽) ───────── */
   var effect = new T.OutlineEffect(renderer, { defaultThickness: mobile ? 0.004 : 0.0032, defaultColor: [0.11, 0.12, 0.15], defaultAlpha: 1 });
+
+  /* ───────── 후처리 ───────── */
+  var dpr = renderer.getPixelRatio();
+  var rt = new T.WebGLRenderTarget(innerWidth * dpr, innerHeight * dpr, { type: T.HalfFloatType, samples: 4 });
+  var composer = new T.EffectComposer(renderer, rt);
+  // 외곽선 효과로 장면을 그리는 첫 패스 (OutlineEffect 를 그대로 사용)
+  var outlined = new T.Pass(); outlined.needsSwap = false;
+  outlined.render = function (r, w, read) { r.setRenderTarget(read); r.setClearColor(0xdfe6ef, 1); r.clear(); effect.render(scene, camera); };
+  composer.addPass(outlined);
+  var sao = new T.SAOPass(scene, camera, true, true, new T.Vector2(innerWidth, innerHeight));
+  Object.assign(sao.params, { saoBias: 0.6, saoIntensity: 0.012, saoScale: 1.4, saoKernelRadius: 22, saoBlur: true, saoBlurRadius: 6, saoBlurStdDev: 3.5, saoBlurDepthCutoff: 0.004 });
+  // composer.addPass(sao);
+  var bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.92);
+  composer.addPass(bloom);
+  var grade = new T.ShaderPass({
+    uniforms: { tDiffuse: { value: null }, res: { value: new T.Vector2(innerWidth, innerHeight) } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: [
+      'uniform sampler2D tDiffuse; varying vec2 vUv;',
+      'vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }',
+      'void main(){',
+      '  vec3 c = texture2D(tDiffuse, vUv).rgb;',
+      '  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
+      '  c += vec3(-0.012, -0.004, 0.022) * (1.0 - smoothstep(0.1, 0.6, l));',   // 그늘: 차가운 푸른빛
+      '  c += vec3(0.016, 0.008, -0.01) * smoothstep(0.55, 1.0, l);',             // 밝은 곳: 아주 살짝 따뜻하게
+      '  c = mix(vec3(l), c, 1.06);',                                            // 채도 조금
+      '  vec2 q = vUv - 0.5; c *= 1.0 - 0.22 * smoothstep(0.35, 0.95, length(q * vec2(1.25, 1.0)));',   // 비네트
+      '  gl_FragColor = vec4(toSRGB(max(c, 0.0)), 1.0);',
+      '}'].join('\n')
+  });
+  composer.addPass(grade);
 
   /* ───────── 조작: 끌어서 회전 · 휠/핀치 확대, 가만히 두면 천천히 흔들림 ───────── */
   var controls = new T.OrbitControls(camera, renderer.domElement);
@@ -495,7 +565,9 @@
       if (P[i * 3 + 1] < 0 || P[i * 3] > 80) { P[i * 3] = -80 + Math.random() * 20; P[i * 3 + 1] = 10 + Math.random() * 35; }
     }
     flakes.p.geometry.attributes.position.needsUpdate = true;
-    effect.render(scene, camera);
+    SUNVIEW.value.copy(sun.position).normalize().transformDirection(camera.matrixWorldInverse);
+    for (var mi = 0; mi < mists.length; mi++) { var ms = mists[mi]; ms.m.position.x = ms.x0 + Math.sin(t * 0.03 * ms.sp + mi) * 6; }
+    composer.render();
     frames++; fpsT += dt;
     if (fpsT >= 1 && fpsEl) { fpsEl.textContent = Math.round(frames / fpsT) + ' FPS'; frames = 0; fpsT = 0; }
   }
@@ -504,6 +576,7 @@
   addEventListener('resize', function () {
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight); sao.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight);
   });
-  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height };
+  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height, sao: sao, bloom: bloom };
 })();
