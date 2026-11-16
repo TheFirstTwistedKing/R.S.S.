@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '2.0.0';
+  R.version = '2.1.0';
   var MODS = { files: ['MOD-01', '파일 열람 · 편집'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
   var destroy = null;
 
@@ -76,6 +76,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (window.rss) document.body.classList.add('electron');
     if (window.rss && window.rss.platform === 'win32') document.body.classList.add('win32');
     $('#topEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
     $('#soundBtn').addEventListener('click', function () { R.sound.set(!R.sound.on); drawSound(); R.sound.key(); R.term.focus(); });

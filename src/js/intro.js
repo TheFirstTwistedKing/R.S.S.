@@ -4,7 +4,7 @@
   var R = window.RSS, $ = R.$, h = R.h;
   var MIN = 4, MAX = 8, MAX_FAIL = 5, SHOW_MS = 650;
 
-  var el = {}, st = { mode: 'unlock', buf: '', shown: -1, first: '', fails: 0, total: 0, busy: false, lockUntil: 0, envelope: null, done: null, typing: 0, hideT: 0 };
+  var el = {}, st = { seq: 0, mode: 'unlock', buf: '', shown: -1, first: '', fails: 0, total: 0, busy: false, lockUntil: 0, envelope: null, done: null, typing: 0, hideT: 0 };
 
   function buildKeypad() {
     var pad = el.keypad; pad.innerHTML = '';
@@ -13,6 +13,7 @@
     pad.appendChild(h('button', { class: 'key', 'data-k': '0', type: 'button' }, '0'));
     pad.appendChild(h('button', { class: 'key fn', 'data-k': 'del', type: 'button', 'aria-label': '한 칸 지우기' }, 'DEL'));
     pad.appendChild(h('button', { class: 'key ok', 'data-k': 'ok', type: 'button' }, 'AUTHENTICATE'));
+    R.$$('.key', pad).forEach(function (k, i) { k.style.setProperty('--k', i); });
     pad.addEventListener('click', function (e) { var b = e.target.closest('.key'); if (b) press(b.getAttribute('data-k')); });
   }
 
@@ -175,34 +176,79 @@
       $('#introEmblem').style.setProperty('--em-mask', 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(mask) + '")');
       buildKeypad();
       R.fx.hex();
+      // 화면 켜짐 잔상 노이즈 텍스처 (한 번만 생성)
+      try {
+        var nc = document.createElement('canvas'); nc.width = nc.height = 160;
+        var ng = nc.getContext('2d'), id = ng.createImageData(160, 160);
+        for (var i = 0; i < id.data.length; i += 4) { var v = Math.random() * 255; id.data[i] = v; id.data[i + 1] = v * .72; id.data[i + 2] = v * .3; id.data[i + 3] = Math.random() < .5 ? 255 : 0; }
+        ng.putImageData(id, 0, 0);
+        $('#power').style.setProperty('--noise', 'url(' + nc.toDataURL('image/png') + ')');
+      } catch (e) {}
       document.addEventListener('keydown', onKey);
     },
     /* 인트로를 처음부터 재생하고 잠금 해제되면 done 호출 */
     show: function (done) {
-      st.done = done; st.buf = ''; st.first = ''; st.shown = -1; busy(false);
+      var seq = ++st.seq, booted = false;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      st.done = done; st.buf = ''; st.first = ''; st.shown = -1; busy(true);
       el.root.hidden = false;
-      el.root.classList.remove('out', 'boot'); void el.root.offsetWidth; el.root.classList.add('boot');
+      el.root.classList.remove('out', 'boot', 'power-on', 'powering'); void el.root.offsetWidth;
+      el.root.classList.add('power-on', 'powering');
       el.status.innerHTML = ''; el.foot.textContent = '';
       $('#hudVault').textContent = 'SEALED';
       R.fx.globe(true);
       renderSlots();
-      busy(true);
-      R.store.load().then(function (env) {
+      R.sound.power();
+
+      // 자가진단(POST) 문구
+      var post = $('#post'); post.innerHTML = '';
+      var lines = [
+        ['R.S.S. ARCHIVE TERMINAL', '  FIRMWARE ' + (R.version || '')],
+        ['MEMORY TEST ........... ', 'OK'],
+        ['CRYPTO MODULE ......... ', 'AES-256-GCM READY'],
+        ['KEY DERIVATION ........ ', 'PBKDF2-SHA256'],
+        ['STORAGE ............... ', 'LOCAL · OFFLINE'],
+        ['PROJECTION ............ ', 'ONLINE']
+      ];
+      lines.forEach(function (l, i) {
         setTimeout(function () {
-          busy(false);
-          if (!env) { st.envelope = null; firstRun(); return; }
-          if (env.broken || !env.ct || !env.salt || !env.iv) {
-            st.mode = 'broken'; $('#hudVault').textContent = 'CORRUPTED';
-            say('보관소 파일 손상 감지. 초기화가 필요합니다.', true);
-            showForgot(); return;
-          }
-          st.envelope = env; setMode('unlock');
-          if (Date.now() < st.lockUntil) { countdown(); return; }
-          say('요원 식별 대기. 접속 코드를 입력하십시오.');
-          el.foot.textContent = '숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움';
-          if (st.fails >= 3) showForgot();
-        }, 1200);
+          if (seq !== st.seq || booted) return;
+          post.appendChild(h('div', null, h('span', { class: 'dim' }, l[0]), l[1]));
+          R.sound.tick();
+        }, reduce ? 0 : 380 + i * 150);
       });
+
+      var envP = R.store.load();
+      var skip = function (e) { if (e && e.type === 'keydown' && e.repeat) return; boot(); };
+      document.addEventListener('keydown', skip, true);
+      el.root.addEventListener('pointerdown', skip);
+      setTimeout(boot, reduce ? 100 : 1700);
+
+      function boot() {
+        if (seq !== st.seq || booted) return;
+        booted = true;
+        document.removeEventListener('keydown', skip, true);
+        el.root.removeEventListener('pointerdown', skip);
+        el.root.classList.add('boot');
+        setTimeout(function () { if (seq === st.seq) el.root.classList.remove('powering'); }, 900);
+        envP.then(function (env) {
+          setTimeout(function () {
+            if (seq !== st.seq) return;
+            busy(false);
+            if (!env) { st.envelope = null; firstRun(); return; }
+            if (env.broken || !env.ct || !env.salt || !env.iv) {
+              st.mode = 'broken'; $('#hudVault').textContent = 'CORRUPTED';
+              say('보관소 파일 손상 감지. 초기화가 필요합니다.', true);
+              showForgot(); return;
+            }
+            st.envelope = env; setMode('unlock');
+            if (Date.now() < st.lockUntil) { countdown(); return; }
+            say('요원 식별 대기. 접속 코드를 입력하십시오.');
+            el.foot.textContent = '숫자 키 입력 가능 · ENTER 인증 · ESC 전체 지움';
+            if (st.fails >= 3) showForgot();
+          }, reduce ? 0 : 1100);
+        });
+      }
     }
   };
 })();

@@ -37,7 +37,7 @@ function createWindow() {
     title: 'R.S.S.',
     icon: path.join(__dirname, 'src', 'icon.png'),
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#FFB020', symbolColor: '#0B0904', height: 28 },
+    titleBarOverlay: { color: '#050607', symbolColor: '#A69B84', height: 32 },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

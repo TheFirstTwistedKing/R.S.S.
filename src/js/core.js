@@ -208,6 +208,7 @@
     },
     key: function () { this.beep(1320, 0.04); },
     type: (function () { var last = 0; return function () { var n = performance.now(); if (n - last < 45) return; last = n; this.beep(2600 + Math.random() * 400, 0.01, 0.008); }; })(),
+    power: function () { this.beep(70, 0.35, 0.06); this.beep(140, 0.2, 0.025, 0.05); this.beep(3200, 0.25, 0.006, 0.12); },
     out: function () { this.beep(1760, 0.02, 0.012); },
     err: function () { this.beep(220, 0.12, 0.04); },
     tick: function () { this.beep(2200, 0.012, 0.012); },

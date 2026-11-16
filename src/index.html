@@ -10,9 +10,7 @@
 <link rel="stylesheet" href="modules.css">
 </head>
 <body>
-<!-- 등급 배너 (창 제목 표시줄 겸용) -->
-<div class="banner banner-top"><span class="bn-l">극비</span><span class="bn-c">TOP SECRET // R.S.S. EYES ONLY</span><span class="bn-r" id="bnClock">--:--:--</span></div>
-<div class="banner banner-bot"><span class="bn-c">극비 // TOP SECRET // 무단 열람 · 복제 · 반출 금지</span></div>
+<div class="dragbar" aria-hidden="true"></div>
 
 <!-- 화면 효과 층 -->
 <div class="fx-scan" aria-hidden="true"></div>
@@ -21,6 +19,7 @@
 <!-- 인트로(잠금): 실행할 때마다, 잠금 해제할 때마다 처음부터 재생 -->
 <section id="intro" class="intro" aria-label="접속 인증">
   <canvas id="globe" class="globe" aria-hidden="true"></canvas>
+  <div class="power" id="power" aria-hidden="true"><div class="post" id="post"></div></div>
   <div class="hud hud-l" aria-hidden="true">
     <div class="hud-h">SYSTEM STATUS</div>
     <dl class="hud-dl">

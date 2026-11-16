@@ -25,7 +25,7 @@
   --wash: rgba(255, 176, 32, .07);
   --glow: 0 0 10px rgba(255, 176, 32, .45);
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s12: 48px;
-  --bn: 28px;
+  --bn: 0px;
   --f-ui: 'Pretendard', system-ui, sans-serif;
   --f-mono: 'D2Coding', 'Pretendard', monospace;
   --cut: 12px;
@@ -51,19 +51,10 @@ input, textarea, select, button { font: inherit; color: inherit; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 176, 32, .45); }
 
 /* ── 등급 배너 ── */
-.banner {
-  position: fixed; left: 0; right: 0; z-index: 90; height: var(--bn);
-  display: flex; align-items: center; gap: var(--s4); padding: 0 var(--s3);
-  background: var(--accent); color: var(--accent-ink);
-  font: 700 11px/1 var(--f-mono); letter-spacing: .18em; white-space: nowrap; overflow: hidden;
-}
-.banner-top { top: 0; -webkit-app-region: drag; }
-.banner-bot { bottom: 0; height: 20px; justify-content: center; font-size: 10px; letter-spacing: .24em; }
-.bn-l { background: var(--accent-ink); color: var(--accent); padding: 4px 8px; letter-spacing: .1em; font-family: var(--f-ui); font-weight: 800; }
-.bn-c { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; }
-.banner-bot .bn-c { flex: none; }
-.bn-r { font-weight: 700; }
-body.win32 .bn-r { margin-right: 140px; }
+/* 창 끌기 영역 (Electron 에서만 높이를 가짐 · 보이는 테두리 없음) */
+.dragbar { position: fixed; top: 0; left: 0; right: 0; height: var(--bn); z-index: 90; -webkit-app-region: drag; pointer-events: none; }
+body.electron { --bn: 32px; }
+body.electron .dragbar { pointer-events: auto; }
 
 /* ── 화면 효과 ── */
 .fx-scan {
@@ -80,7 +71,7 @@ body.win32 .bn-r { margin-right: 140px; }
 
 /* ── 인트로 / 잠금 ── */
 .intro {
-  position: fixed; top: var(--bn); bottom: 20px; left: 0; right: 0; z-index: 40;
+  position: fixed; top: var(--bn); bottom: 0; left: 0; right: 0; z-index: 40;
   display: flex; overflow-y: auto; overflow-x: hidden;
   background:
     linear-gradient(to right, rgba(255, 176, 32, .035) 1px, transparent 1px) 0 0 / 64px 64px,
@@ -196,7 +187,7 @@ body.win32 .bn-r { margin-right: 140px; }
 }
 
 /* ── 메인 ── */
-.app { position: fixed; top: var(--bn); bottom: 20px; left: 0; right: 0; display: flex; flex-direction: column; }
+.app { position: fixed; top: var(--bn); bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; }
 .app.on .topbar, .app.on .win { animation: materialize .7s cubic-bezier(.2, .8, .2, 1) both; }
 .app.on .win-term { animation-delay: .12s; }
 .app.on .win-log { animation-delay: .24s; }
@@ -303,14 +294,14 @@ body.win32 .bn-r { margin-right: 140px; }
 .lg-day { padding: var(--s2) var(--s4) 2px; color: var(--accent-dim); font-size: 10px; letter-spacing: .2em; }
 
 /* ── 모듈 창 ── */
-.module { position: fixed; top: var(--bn); bottom: 20px; left: 0; right: 0; z-index: 50; padding: var(--s4); background: rgba(5, 6, 7, .94); }
+.module { position: fixed; top: var(--bn); bottom: 0; left: 0; right: 0; z-index: 50; padding: var(--s4); background: rgba(5, 6, 7, .94); }
 .mod-win { height: 100%; display: flex; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--line-3); clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); animation: materialize .5s cubic-bezier(.2, .8, .2, 1) both; }
 .mod-x { height: 24px; padding: 0 var(--s2); background: transparent; border: 1px solid var(--line-2); color: var(--muted); cursor: pointer; font: 600 10px/1 var(--f-mono); letter-spacing: .14em; }
 .mod-x:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent); }
 .mod-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 
 /* ── 모달 / 토스트 ── */
-.modal { position: fixed; top: var(--bn); bottom: 20px; left: 0; right: 0; z-index: 70; background: rgba(5, 6, 7, .8); display: grid; place-items: center; padding: var(--s4); }
+.modal { position: fixed; top: var(--bn); bottom: 0; left: 0; right: 0; z-index: 70; background: rgba(5, 6, 7, .8); display: grid; place-items: center; padding: var(--s4); }
 .dialog { width: min(560px, 100%); max-height: calc(100dvh - 100px); overflow-y: auto; background: var(--panel-solid); border: 1px solid var(--line-3); clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); animation: materialize .35s ease-out both; }
 .dialog.wide { width: min(880px, 100%); }
 .dialog-h { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line-2); position: sticky; top: 0; background: var(--panel-solid); z-index: 1; }
@@ -318,7 +309,7 @@ body.win32 .bn-r { margin-right: 140px; }
 .dialog-b { padding: var(--s4); display: flex; flex-direction: column; gap: var(--s4); }
 .dialog-b p { margin: 0; color: var(--muted); }
 .dialog-f { display: flex; justify-content: flex-end; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--line-2); flex-wrap: wrap; }
-.toast { position: fixed; right: var(--s4); bottom: 36px; z-index: 95; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; }
+.toast { position: fixed; right: var(--s4); bottom: var(--s4); z-index: 95; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; }
 .toast .t { background: var(--panel-solid); border: 1px solid var(--line-3); border-left: 3px solid var(--accent); padding: var(--s2) var(--s4); font: 12px/20px var(--f-mono); animation: materialize .3s ease-out both; max-width: 380px; }
 
 /* ── 반응형 ── */
@@ -330,8 +321,6 @@ body.win32 .bn-r { margin-right: 140px; }
   .topbar { justify-content: space-between; height: 56px; padding: var(--s2) var(--s3); }
 }
 @media (max-width: 560px) {
-  .bn-c { font-size: 9px; letter-spacing: .1em; }
-  .banner-bot .bn-c { font-size: 8px; letter-spacing: .12em; }
   .tb-name span { display: none; }
   .tb-em { width: 56px; }
   .term { font-size: 13px; }
@@ -403,3 +392,46 @@ body.win32 .bn-r { margin-right: 140px; }
   .slot { height: 34px; font-size: 22px; }
   .lock-foot { margin-top: var(--s2); }
 }
+
+/* ── 인트로: 화면이 켜지는 연출 ──
+   1) 중앙의 점 → 가로선 → 화면 전체로 열림 (밝게 번쩍인 뒤 잦아듦, 1회)
+   2) 잔상 노이즈가 걷히며 자가진단(POST) 문구가 찍힘
+   3) 잠금 패널·문장·HUD 가 차례로 나타남 */
+.intro.power-on { animation: crt-on .85s cubic-bezier(.16, .84, .3, 1) backwards; transform-origin: 50% 50%; }
+@keyframes crt-on {
+  0% { transform: scale(0, .003); filter: brightness(6) saturate(0); }
+  28% { transform: scale(1, .003); filter: brightness(6) saturate(0); }
+  58% { transform: scale(1, 1.02); filter: brightness(2.2) saturate(.6); }
+  78% { transform: scale(1, .995); filter: brightness(1.3); }
+  100% { transform: scale(1, 1); filter: brightness(1); }
+}
+.power { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: none; }
+.intro.powering .power { display: block; }
+.power::before {
+  content: ''; position: absolute; inset: -64px; background-image: var(--noise); background-size: 160px 160px; opacity: .22;
+  animation: noise-move .5s steps(8) infinite, noise-out 1.5s ease-out forwards;
+}
+.power::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(255, 214, 140, .22), transparent 70%); animation: noise-out 1.1s ease-out forwards; }
+@keyframes noise-move { 0% { transform: translate(0, 0); } 25% { transform: translate(-37px, 21px); } 50% { transform: translate(23px, -41px); } 75% { transform: translate(-13px, 33px); } 100% { transform: translate(29px, -9px); } }
+@keyframes noise-out { from { opacity: .26; } to { opacity: 0; } }
+.post {
+  position: absolute; left: 48px; top: 48px; right: 48px;
+  font: 13px/1.75 var(--f-mono); color: var(--accent); text-shadow: 0 0 8px rgba(255, 176, 32, .55); white-space: pre;
+}
+.post .dim { color: var(--muted); text-shadow: none; }
+.intro.powering:not(.boot) .lock, .intro.powering:not(.boot) .hud, .intro.powering:not(.boot) .frame-corners { opacity: 0; }
+.intro.powering .globe { opacity: 0; transition: none; }
+.intro.boot .globe { opacity: 1; transition: opacity 1.2s ease-out; }
+.intro.boot .post { animation: post-out .35s ease-out forwards; }
+@keyframes post-out { to { opacity: 0; transform: translateY(-6px); } }
+.intro.boot .hud, .intro.boot .frame-corners { animation: hud-in .7s ease-out both; }
+.intro.boot .hud-r { animation-delay: .12s; }
+@keyframes hud-in { 0% { opacity: 0; } 30% { opacity: .8; } 40% { opacity: .2; } 100% { opacity: 1; } }
+.intro.boot .brand, .intro.boot .brand-sub { animation: lock-in .6s ease-out both; animation-delay: .7s; }
+.intro.boot .brand-sub { animation-delay: .85s; }
+.intro.boot .lock-status, .intro.boot .code-box { animation: lock-in .5s ease-out both; animation-delay: .95s; }
+.intro.boot .keypad .key { animation: lock-in .35s ease-out both; animation-delay: calc(1.05s + var(--k, 0) * 35ms); }
+.intro.boot .lock-foot, .intro.boot .lock-warn { animation: lock-in .5s ease-out both; animation-delay: 1.5s; }
+@keyframes lock-in { from { opacity: 0; transform: translateY(8px); } }
+@media (max-width: 560px) { .post { left: 20px; top: 24px; font-size: 11px; } }
+.intro.boot .code-box.shake { animation: shake .4s cubic-bezier(.36, .07, .19, .97) 1; }
