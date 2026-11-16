@@ -1,9 +1,12 @@
 name: Windows EXE 빌드
 
+# PR: 빌드만 확인 / main 병합: 빌드 후 Releases 업로드
 on:
   push:
-    branches: ['**']
+    branches: [main]
     paths-ignore: ['**.md']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -28,7 +31,7 @@ jobs:
           git init -q /c/rss
           cd /c/rss
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
-          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git fetch -q --depth 1 origin "${{ github.event.pull_request.head.sha || github.sha }}"
           git checkout -q FETCH_HEAD
 
       - uses: actions/setup-node@v4
@@ -56,6 +59,7 @@ jobs:
           if-no-files-found: error
 
       - name: GitHub Releases 업로드
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}

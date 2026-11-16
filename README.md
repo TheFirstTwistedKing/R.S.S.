@@ -40,7 +40,7 @@ npm start          # 앱 실행
 npm run dist       # Windows exe 빌드 (Windows에서 실행)
 ```
 
-어느 브랜치든 push 하면 GitHub Actions가 Windows에서 exe를 빌드해 `package.json` 버전으로 Release(`v2.0.0` 등)에 올립니다.
+`main` 으로 가는 PR 은 Windows 빌드만 확인하고, `main` 에 병합되면 GitHub Actions가 exe를 빌드해 `package.json` 버전으로 Release(`v2.1.0` 등)에 올립니다. 새 릴리즈를 만들려면 `version` 을 올려서 병합하세요.
 
 아이콘은 `src/js/emblem.js` 벡터 문장으로 만들어집니다. 문장을 바꿨다면 `node scripts/make-icon.js` (playwright, png-to-ico 필요)로 `build/icon.ico`를 다시 생성합니다.
 
