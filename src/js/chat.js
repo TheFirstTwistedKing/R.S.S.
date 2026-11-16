@@ -267,7 +267,7 @@
     if (r.many) return C(fmt(Lx().sim.many, { 목록: r.many.map(function (p) { return p.site; }).join(' / ') }));
     var p = r.place;
     CA(fmt(Lx().sim.toApex, { 장소: p.site, 코드: p.code }), { wait: 240 });
-    A(fmt(Lx().sim.ack, { 장소: p.site, 코드: p.code }), { pre: [{ t: R.simPath(p), c: 'hi' }, { t: fit('CAM', 10) + p.cam }, { t: fit('LINK', 10) + R.T('수립 · 영상 신호 미수신', 'established · no video signal') }] });
+    A(fmt(Lx().sim.ack, { 장소: p.site, 코드: p.code }), { pre: [{ t: R.simPath(p), c: 'hi' }, { t: fit('CAM', 10) + p.cam }, { t: fit('LINK', 10) + (p.feed ? R.T('수립 · 순찰 로봇 카메라 영상', 'established · patrol robot camera') : R.T('수립 · 영상 신호 미수신', 'established · no video signal')) }] });
     C(fmt(Lx().sim.user, { 장소: p.site }));
     chain = chain.then(function () { R.sim.open(p); });
   }

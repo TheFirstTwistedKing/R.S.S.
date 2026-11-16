@@ -7,6 +7,8 @@
   'use strict';
   var T = window.THREE;
   var mobile = Math.min(innerWidth, innerHeight) < 700;
+  // feed=1: 시뮬레이션 창 안에서 순찰 로봇의 1인칭 감시 영상으로 쓰임 (조작 없음, 잡음·주사선 추가)
+  var FEED = /[?&]feed=1/.test(location.search);
 
   /* ───────── 렌더러 · 장면 · 카메라 ───────── */
   var renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -42,7 +44,7 @@
   scene.add(skyDome);
   scene.fog = new T.Fog(0xdce4ee, 120, 380);
 
-  var camera = new T.PerspectiveCamera(innerWidth / innerHeight < 1.2 ? 52 : 41, innerWidth / innerHeight, 0.5, 900);
+  var camera = new T.PerspectiveCamera(FEED ? 68 : (innerWidth / innerHeight < 1.2 ? 52 : 41), innerWidth / innerHeight, FEED ? 0.15 : 0.5, 900);
   var HOME = { pos: new T.Vector3(-0.8, 22.2, 58.7), target: new T.Vector3(6.2, 6, -9.5) };   // 사진 기준점 5곳에 맞춰 계산한 구도
   // 세로 화면(휴대폰)은 기지 전체가 들어오도록 뒤로 물러나고 살짝 왼쪽(본관)으로 조준
   var narrow = innerWidth / innerHeight < 1.2;
@@ -454,12 +456,19 @@
     if (lineBucket.length) scene.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(lineBucket), new T.LineBasicMaterial({ color: 0x353a43 })));
   })();
 
+  // 둥근 눈송이 모양 (점이 네모로 보이지 않게)
+  var SOFTDOT = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 32;
+    var g = c.getContext('2d'), rg = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.45, 'rgba(255,255,255,0.75)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, 32, 32); return new T.CanvasTexture(c);
+  })();
   /* ───────── 바람에 날리는 가는 눈 (아주 약하게) ───────── */
   var flakes = (function () {
     var n = mobile ? 350 : 700, pos = new Float32Array(n * 3), spd = new Float32Array(n);
     for (var i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 160; pos[i * 3 + 1] = Math.random() * 45; pos[i * 3 + 2] = (Math.random() - 0.5) * 120; spd[i] = 0.6 + Math.random(); }
     var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
-    var m = new T.PointsMaterial({ color: 0xffffff, size: 0.28, transparent: true, opacity: 0.7, depthWrite: false });
+    var m = new T.PointsMaterial({ color: 0xffffff, size: 0.28, map: SOFTDOT, transparent: true, opacity: 0.8, depthWrite: false });
     var p = new T.Points(g, m); scene.add(p);
     return { p: p, pos: pos, spd: spd, n: n };
   })();
@@ -512,31 +521,42 @@
   var outlined = new T.Pass(); outlined.needsSwap = false;
   outlined.render = function (r, w, read) { r.setRenderTarget(read); r.setClearColor(0xdfe6ef, 1); r.clear(); effect.render(scene, camera); };
   composer.addPass(outlined);
-  var sao = new T.SAOPass(scene, camera, true, true, new T.Vector2(innerWidth, innerHeight));
-  Object.assign(sao.params, { saoBias: 0.6, saoIntensity: 0.012, saoScale: 1.4, saoKernelRadius: 22, saoBlur: true, saoBlurRadius: 6, saoBlurStdDev: 3.5, saoBlurDepthCutoff: 0.004 });
-  // composer.addPass(sao);
   var bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.92);
   composer.addPass(bloom);
   var grade = new T.ShaderPass({
-    uniforms: { tDiffuse: { value: null }, res: { value: new T.Vector2(innerWidth, innerHeight) } },
+    uniforms: { tDiffuse: { value: null }, res: { value: new T.Vector2(innerWidth, innerHeight) }, time: { value: 0 }, feed: { value: FEED ? 1 : 0 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: [
-      'uniform sampler2D tDiffuse; varying vec2 vUv;',
+      'uniform sampler2D tDiffuse; uniform vec2 res; uniform float time; uniform float feed; varying vec2 vUv;',
+      'float h1(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }',
       'vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }',
       'void main(){',
-      '  vec3 c = texture2D(tDiffuse, vUv).rgb;',
+      '  vec2 uv = vUv;',
+      '  float band = feed * smoothstep(0.0, 0.04, 0.04 - abs(fract(uv.y - time * 0.045) - 0.5));',   // 천천히 내려가는 간섭 띠
+      '  uv.x += band * 0.0035 * sin(uv.y * 900.0 + time * 3.0);',
+      '  vec2 off = feed * (uv - 0.5) * 0.0045;',                                          // 가장자리 색 번짐
+      '  vec3 c = vec3(texture2D(tDiffuse, uv + off).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - off).b);',
       '  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
       '  c += vec3(-0.012, -0.004, 0.022) * (1.0 - smoothstep(0.1, 0.6, l));',   // 그늘: 차가운 푸른빛
       '  c += vec3(0.016, 0.008, -0.01) * smoothstep(0.55, 1.0, l);',             // 밝은 곳: 아주 살짝 따뜻하게
       '  c = mix(vec3(l), c, 1.06);',                                            // 채도 조금
       '  vec2 q = vUv - 0.5; c *= 1.0 - 0.22 * smoothstep(0.35, 0.95, length(q * vec2(1.25, 1.0)));',   // 비네트
-      '  gl_FragColor = vec4(toSRGB(max(c, 0.0)), 1.0);',
+      '  vec3 o = toSRGB(max(c, 0.0));',
+      '  if (feed > 0.5) {',
+      '    float lum = dot(o, vec3(0.299, 0.587, 0.114)); o = mix(vec3(lum), o, 0.72);',     // 감시 카메라처럼 채도 낮춤
+      '    float g = h1(floor(vUv * res / 1.5) + floor(time * 24.0)) - 0.5; o += g * 0.085;',  // 필름 잡음 (밝기 깜빡임 없이 작게)
+      '    o *= 0.93 + 0.07 * sin(vUv.y * res.y * 1.5708);',                                  // 주사선
+      '    o += band * 0.035;',
+      '  }',
+      '  gl_FragColor = vec4(o, 1.0);',
       '}'].join('\n')
   });
   composer.addPass(grade);
 
   /* ───────── 조작: 끌어서 회전 · 휠/핀치 확대, 가만히 두면 천천히 흔들림 ───────── */
+  var frameHooks = [];
   var controls = new T.OrbitControls(camera, renderer.domElement);
+  controls.enabled = !FEED;
   controls.target.copy(HOME.target);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 30; controls.maxDistance = 200;
@@ -552,17 +572,19 @@
     requestAnimationFrame(loop);
     var dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
     // 손대지 않으면 3초 뒤부터 아주 느리게 좌우로 흔들림
-    if (performance.now() - idleSince > 3000) {
+    if (!FEED && performance.now() - idleSince > 3000) {
       var want = base.az + Math.sin(t * 0.08) * 0.12, cur = controls.getAzimuthalAngle();
       var r = camera.position.clone().sub(controls.target), rot = (want - cur) * 0.02;
       r.applyAxisAngle(new T.Vector3(0, 1, 0), rot); camera.position.copy(controls.target).add(r);
     }
-    controls.update();
+    if (!FEED) controls.update();
+    for (var hk = 0; hk < frameHooks.length; hk++) frameHooks[hk](dt, t);
+    grade.uniforms.time.value = t;
     var P = flakes.pos;
     for (var i = 0; i < flakes.n; i++) {
       P[i * 3] += (2.2 + Math.sin(t + i) * 0.4) * dt * flakes.spd[i];
       P[i * 3 + 1] -= 1.1 * dt * flakes.spd[i];
-      if (P[i * 3 + 1] < 0 || P[i * 3] > 80) { P[i * 3] = -80 + Math.random() * 20; P[i * 3 + 1] = 10 + Math.random() * 35; }
+      if (P[i * 3 + 1] < 0 || P[i * 3] > 80) { P[i * 3] = -80 + Math.random() * 20; P[i * 3 + 1] = 2 + Math.random() * 43; }
     }
     flakes.p.geometry.attributes.position.needsUpdate = true;
     SUNVIEW.value.copy(sun.position).normalize().transformDirection(camera.matrixWorldInverse);
@@ -576,7 +598,7 @@
   addEventListener('resize', function () {
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-    composer.setSize(innerWidth, innerHeight); sao.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight); grade.uniforms.res.value.set(innerWidth, innerHeight);
   });
-  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height, sao: sao, bloom: bloom };
+  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height, bloom: bloom, sun: sun, M: M, gradMap: gradMap, enhance: enhance, FEED: FEED, frameHooks: frameHooks, SOFTDOT: SOFTDOT };
 })();

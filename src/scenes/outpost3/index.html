@@ -17,25 +17,69 @@
   .tag b { display: block; font-size: 11px; letter-spacing: .2em; color: #b5452c; }
   #fps { position: fixed; right: 16px; bottom: 16px; font: 11px/1 'D2Coding', monospace; color: #4b5563; pointer-events: none; }
   @media (max-width: 560px) { .tag { font-size: 11px; left: 12px; right: 12px; bottom: 12px; } #fps { top: 12px; right: 12px; bottom: auto; } }
+
+  /* ── 감시 영상(feed) 모드: 로봇 머리 카메라 HUD ── */
+  #hud { display: none; }
+  body.feed { background: #050505; }
+  body.feed .tag, body.feed #fps { display: none; }
+  body.feed #hud {
+    display: block; position: fixed; inset: 0; pointer-events: none;
+    font: 11px/1 'D2Coding', monospace; letter-spacing: .14em; color: rgba(236, 242, 250, .82);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .9), 0 0 8px rgba(0, 0, 0, .6);
+  }
+  /* 방위 눈금 (위 가운데) */
+  .tape { position: absolute; top: 12px; background: rgba(8, 10, 14, .38); padding-top: 2px; left: 50%; width: min(360px, 52vw); height: 26px; transform: translateX(-50%); overflow: hidden;
+          -webkit-mask: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+  .tape-in { position: absolute; top: 0; left: 0; height: 100%; white-space: nowrap; will-change: transform; }
+  .tape-in span { position: absolute; top: 0; width: 40px; margin-left: -20px; text-align: center; font-size: 10px; }
+  .tape-in span::after { content: ''; display: block; width: 1px; height: 6px; margin: 4px auto 0; background: currentColor; opacity: .7; }
+  .tape-mark { position: absolute; top: 40px; left: 50%; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; border-bottom-color: #ffb020; }
+  .hdg { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); color: #ffb020; letter-spacing: .2em; padding: 3px 6px; background: rgba(8, 10, 14, .55); }
+  .unit { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: .3em; opacity: .85; white-space: nowrap; }
+  /* 조준 표시 (가운데) */
+  .ret { position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+  .ret i { position: absolute; background: rgba(236, 242, 250, .85); box-shadow: 0 0 2px rgba(0, 0, 0, .8); }
+  .ret i:nth-child(1) { left: 0; top: 31px; width: 20px; height: 1px; }
+  .ret i:nth-child(2) { right: 0; top: 31px; width: 20px; height: 1px; }
+  .ret i:nth-child(3) { top: 0; left: 31px; width: 1px; height: 14px; }
+  .ret i:nth-child(4) { left: 30px; top: 30px; width: 3px; height: 3px; background: #ffb020; }
+  /* 녹화 정보 (아래 가운데) */
+  .tele { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; white-space: nowrap; padding: 6px 12px; background: rgba(8, 10, 14, .55); }
+  .tele b { font-weight: 400; color: #ffb020; }
+  @media (max-width: 860px) { .tele { gap: 10px; font-size: 10px; } .tele .opt { display: none; } }
+  @media (max-width: 560px) { .unit { display: none; } }
 </style>
 </head>
 <body>
 <div id="stage"></div>
 <div class="tag"><b>VMK-CW-N03</b>버믹쿠루시아 › 천공월아 본부 › 북부 산골짜기 제 3초소</div>
 <div id="fps"></div>
+<div id="hud" aria-hidden="true">
+  <div class="tape"><div class="tape-in"></div></div>
+  <div class="tape-mark"></div>
+  <div class="hdg">000°</div>
+  <div class="unit">PATROL UNIT · MK-03 · CAM FWD</div>
+  <div class="ret"><i></i><i></i><i></i><i></i></div>
+  <div class="tele">
+    <span>TC <b class="tc">00:00:00:00</b></span>
+    <span>SPD <b class="spd">0.0</b> km/h</span>
+    <span class="opt">GRID <b class="grid">+000 / +000</b></span>
+    <span class="opt">ELV <b class="elv">0.0</b> m</span>
+  </div>
+</div>
 <script src="../../vendor/three/three.min.js"></script>
 <script src="../../vendor/three/OrbitControls.js"></script>
 <script src="../../vendor/three/OutlineEffect.js"></script>
 <script src="../../vendor/three/BufferGeometryUtils.js"></script>
 <script src="../../vendor/three/CopyShader.js"></script>
-<script src="../../vendor/three/SAOShader.js"></script>
-<script src="../../vendor/three/DepthLimitedBlurShader.js"></script>
-<script src="../../vendor/three/UnpackDepthRGBAShader.js"></script>
 <script src="../../vendor/three/LuminosityHighPassShader.js"></script>
 <script src="../../vendor/three/EffectComposer.js"></script>
 <script src="../../vendor/three/ShaderPass.js"></script>
-<script src="../../vendor/three/SAOPass.js"></script>
 <script src="../../vendor/three/UnrealBloomPass.js"></script>
+<script src="../../vendor/three/GLTFLoader.js"></script>
+<script src="feedhud.js"></script>
 <script src="scene.js"></script>
+<script src="mech.glb.js"></script>
+<script src="mech.js"></script>
 </body>
 </html>

@@ -51,8 +51,8 @@
       unknown: '"{q}" 은(는) 등록된 장소가 아닙니다. 등록된 장소: {목록}',
       many: '해당하는 장소가 여러 곳입니다: {목록}. 장소 이름까지 입력해 주십시오.',
       toApex: ['Apex, {장소} 시뮬레이션 링크 연결.', 'Apex, {코드} 감시 화면 호출.'],
-      ack: '{코드} 링크 수립. 영상 신호 미수신. 화면 송출.',
-      user: ['{장소} 시뮬레이션을 띄웠습니다. 다만 신호가 들어오지 않습니다. (F4 전체화면)', '{장소} 화면을 오른쪽 위에 열었습니다. 현재 신호가 없습니다. (F4 전체화면)'],
+      ack: '{코드} 링크 수립. 순찰 기체 MK-03 머리 카메라 영상 송출.',
+      user: ['{장소} 시뮬레이션을 띄웠습니다. 순찰 로봇의 시점입니다. (F4 전체화면)', '{장소} 감시 화면을 오른쪽 위에 열었습니다. 순찰 로봇 카메라로 녹화 중입니다. (F4 전체화면)'],
       closed: '시뮬레이션을 종료했습니다.',
       notOpen: '켜져 있는 시뮬레이션이 없습니다.'
     },
@@ -137,8 +137,8 @@
       unknown: '"{q}" is not a registered location. Registered: {목록}',
       many: 'Several places match: {목록}. Please include the place name.',
       toApex: ['Apex, open the simulation link for {장소}.', 'Apex, call up monitor {코드}.'],
-      ack: '{코드} link established. No video signal. Displaying.',
-      user: ['The {장소} simulation is up, but there is no signal. (F4 for full screen)', 'Opened {장소} in the top-right. No signal at the moment. (F4 for full screen)'],
+      ack: '{코드} link established. Patrol unit MK-03 head camera on air.',
+      user: ['The {장소} simulation is up. You are seeing through the patrol robot. (F4 for full screen)', 'Opened {장소} in the top-right, recording from the patrol robot camera. (F4 for full screen)'],
       closed: 'Simulation closed.',
       notOpen: 'No simulation is running.'
     },
