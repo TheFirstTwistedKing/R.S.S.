@@ -433,6 +433,8 @@
     if (/^(msg|메신저|messenger)$/.test(cmd)) { C(Lx().module.msg, { wait: 200 }); chain = chain.then(function () { R.go('msg'); }); return; }
     if (/^(아카이브|archive)(\s*(켜|열어|보여|on|open).*)?$/.test(cmd) || /아카이브\s*(좀\s*)?(켜|열어|보여)|open\s+(the\s+)?archive/i.test(t)) { C(Lx().module.files, { wait: 200 }); chain = chain.then(function () { R.go('files'); }); return; }
     if (/^(잠금|lock|잠가|잠가줘)$/.test(cmd)) return doLock();
+    if (/^os(\s*(켜|열어|실행|open|start).*)?$/.test(cmd)) { C(Lx().os.open, { wait: 200 }); chain = chain.then(function () { R.oswin.open(); }); return; }
+    if (/^os\s*(종료|닫아|닫기|꺼|끄기|close|off)/.test(cmd)) { if (!R.oswin.isOpen()) return C(Lx().os.notOpen); R.oswin.close(true); return C(Lx().os.closed); }
     // 캠: 캠 코드만 입력하거나 "캠 A-001" (닫기: 캠 종료)
     if (/^\s*[a-z]\s*-?\s*\d{3}\s*$/i.test(t) || /(^|\s)(캠|카메라|cam|camera)(\s|$)/i.test(t) || /^캠/.test(t.trim())) return camera(t);
     // 봉인 문서(I Archi 행성 등)에 대한 요청은 무엇이든 승인 거부

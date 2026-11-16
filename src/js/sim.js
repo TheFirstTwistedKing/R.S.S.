@@ -72,6 +72,7 @@
       cur = p;
       el = build(p);
       document.getElementById('app').appendChild(el);
+      R.win.make(el, el.querySelector('.sim-h'), function () { R.sim.toggleFull(); });
       // Control 이 여는 연출: 글자 비가 쏟아진 뒤 화면이 켜짐(가로선 → 화면) → NO SIGNAL
       el.classList.add('opening');
       R.fx.rainOpen(el);
