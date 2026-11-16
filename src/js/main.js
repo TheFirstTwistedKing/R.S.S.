@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.2.0';
+  R.version = '3.2.1';
   var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'] };
   var destroy = null;
 
@@ -25,7 +25,7 @@
     // Control 이 여는 연출: 여러 언어 글자가 쏟아진 뒤 창이 드러남
     m.classList.remove('opening'); void m.offsetWidth; m.classList.add('opening');
     R.fx.rainOpen(m.querySelector('.mod-win'));
-    setTimeout(function () { m.classList.remove('opening'); }, 800);
+    // 'opening' 표시는 그대로 둠: 떼면 기본 등장 애니메이션이 다시 재생되어 창이 한 번 더 깜빡임
     var r = R.views[name](view, opts || {});
     if (typeof r === 'function') destroy = r;
     R.sound.nav();
