@@ -8,7 +8,7 @@
   var SHAPE = { character: '■', organization: '□', location: '◆', item: '▪', lore: '◇' };
 
   R.views.graph = function (root, opts) {
-    var db = R.store.db;
+    var db = R.A;   // 내장 세계관 문서 (열람 전용)
     var wrap = h('div', { class: 'graph' });
     var cv = h('canvas', { 'aria-label': R.T('관계도', 'Relation graph') });
     wrap.appendChild(cv); root.appendChild(wrap);
@@ -37,7 +37,7 @@
 
     if (!nodes.length) {
       wrap.appendChild(h('div', { class: 'empty', style: { position: 'absolute', left: '16px', right: '16px', top: '64px', maxWidth: '520px' } },
-        h('h3', null, R.T('표시할 파일이 없습니다', 'Nothing to show')), h('p', null, R.T('파일을 등록하고 [+ 관계 연결]로 이으면 이곳에 관계망이 그려집니다.', 'File documents and link them; the network appears here.')),
+        h('h3', null, R.T('표시할 파일이 없습니다', 'Nothing to show')), h('p', null, R.T('공개된 세계관 문서가 생기면 이곳에 관계망이 그려집니다.', 'The relation network appears here once world documents are released.')),
         h('button', { class: 'btn primary', type: 'button', onclick: function () { R.go('files'); } }, R.T('파일로 이동', 'Go to archive'))));
     }
 

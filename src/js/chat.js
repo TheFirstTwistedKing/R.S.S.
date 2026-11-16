@@ -123,7 +123,7 @@
   function byCode(code) {
     var m = String(code).match(/^(chr|org|loc|itm|lor)-?0*(\d{1,4})$/i);
     if (!m) return null;
-    return db().entities.find(function (e) { return R.type(e.type).code === m[1].toUpperCase() && e.no === +m[2]; }) || null;
+    return R.A.entities.find(function (e) { return R.type(e.type).code === m[1].toUpperCase() && e.no === +m[2]; }) || null;
   }
   /* 문장 안에 언급된 파일들 (코드 · 이름 · 별칭), 등장 순서대로 */
   function mentions(text) {
@@ -132,7 +132,7 @@
     var re = /\b(chr|org|loc|itm|lor)-?0*(\d{1,4})\b/gi, m;
     while ((m = re.exec(text))) { var e = byCode(m[1] + '-' + m[2]); if (e) { found.push({ e: e, i: m.index }); taken.push([m.index, m.index + m[0].length]); } }
     var names = [];
-    db().entities.forEach(function (e) { [e.name, e.alias].forEach(function (n) { if (n && n.length >= 2) names.push({ n: n.toLowerCase(), e: e }); }); });
+    R.A.entities.forEach(function (e) { [e.name, e.alias].forEach(function (n) { if (n && n.length >= 2) names.push({ n: n.toLowerCase(), e: e }); }); });
     names.sort(function (a, b) { return b.n.length - a.n.length; });
     names.forEach(function (x) {
       var i = low.indexOf(x.n);
@@ -154,15 +154,15 @@
     var facts = (e.status ? [{ k: R.T('상태', 'Status'), v: e.status }] : []).concat(e.fields);
     if (facts.length) { L2.push({ t: '─'.repeat(Math.min(40, cols() - 2)), c: 'rule' }); facts.forEach(function (f) { L2.push({ t: fit(f.k, 12) + f.v }); }); }
     if (e.body) { L2.push({ t: '─'.repeat(Math.min(40, cols() - 2)), c: 'rule' }); e.body.split('\n').forEach(function (ln) { L2.push({ t: ln }); }); }
-    var links = db().links.filter(function (l) { return l.a === e.id || l.b === e.id; });
+    var links = R.A.links.filter(function (l) { return l.a === e.id || l.b === e.id; });
     if (links.length) {
       L2.push({ t: 'LINKS', c: 'hi' });
       links.forEach(function (l) {
-        var o = db().entities.find(function (x) { return x.id === (l.a === e.id ? l.b : l.a); }); if (!o) return;
+        var o = R.A.entities.find(function (x) { return x.id === (l.a === e.id ? l.b : l.a); }); if (!o) return;
         L2.push({ t: '  ' + (l.a === e.id ? '→ ' : '← ') + fit(l.label || R.T('관계', 'link'), 10) + R.code(o) + '  ' + o.name });
       });
     }
-    var evs = db().events.filter(function (v) { return v.entities.indexOf(e.id) >= 0; }).sort(R.byDate);
+    var evs = R.A.events.filter(function (v) { return v.entities.indexOf(e.id) >= 0; }).sort(R.byDate);
     if (evs.length) { L2.push({ t: 'EVENTS', c: 'hi' }); evs.forEach(function (v) { L2.push({ t: '  ' + fit(v.date || R.T('날짜 미상', 'undated'), 12) + v.title }); }); }
     return L2;
   }
@@ -177,127 +177,7 @@
     return out2;
   }
 
-  /* ───────── 문서 템플릿 (Apex 가 누락 항목을 판단하는 기준) ───────── */
-  var TPL = {
-    character: [{ k: 'name', q: '이름', qe: 'name', req: 1 }, { k: 'clearance', q: '보안 등급', qe: 'clearance', req: 1 }, { k: 'alias', q: '별칭 또는 코드네임', qe: 'alias or codename' }, { k: 'status', q: '현재 상태', qe: 'current status' }, { k: 'f:소속', q: '소속', qe: 'affiliation' }, { k: 'f:나이', q: '나이', qe: 'age' }, { k: 'summary', q: '한 줄 요약', qe: 'one-line summary' }],
-    organization: [{ k: 'name', q: '조직명', qe: 'organization name', req: 1 }, { k: 'clearance', q: '보안 등급', qe: 'clearance', req: 1 }, { k: 'alias', q: '별칭', qe: 'alias' }, { k: 'status', q: '현재 상태', qe: 'current status' }, { k: 'f:본거지', q: '본거지', qe: 'base' }, { k: 'f:규모', q: '규모', qe: 'size' }, { k: 'summary', q: '한 줄 요약', qe: 'one-line summary' }],
-    location: [{ k: 'name', q: '장소명', qe: 'place name', req: 1 }, { k: 'clearance', q: '보안 등급', qe: 'clearance', req: 1 }, { k: 'f:위치', q: '위치', qe: 'position' }, { k: 'f:관할', q: '관할', qe: 'jurisdiction' }, { k: 'summary', q: '한 줄 요약', qe: 'one-line summary' }],
-    item: [{ k: 'name', q: '물품명', qe: 'item name', req: 1 }, { k: 'clearance', q: '보안 등급', qe: 'clearance', req: 1 }, { k: 'f:분류', q: '분류', qe: 'category' }, { k: 'f:소유자', q: '소유자', qe: 'owner' }, { k: 'summary', q: '한 줄 요약', qe: 'one-line summary' }],
-    lore: [{ k: 'name', q: '항목명', qe: 'entry name', req: 1 }, { k: 'clearance', q: '보안 등급', qe: 'clearance', req: 1 }, { k: 'summary', q: '한 줄 요약', qe: 'one-line summary' }, { k: 'body', q: '상세 내용', qe: 'details' }],
-    event: [{ k: 'title', q: '사건명', qe: 'event title', req: 1 }, { k: 'date', q: '날짜', qe: 'date' }, { k: 'desc', q: '개요', qe: 'summary' }, { k: 'entities', q: '관련 문서', qe: 'related documents' }, { k: 'major', q: '주요 사건 여부', qe: 'major event' }]
-  };
-  var Q = function (f) { return R.lang === 'en' ? f.qe : f.q; };
-  var typeLabel = function (t) { return t === 'event' ? R.T('사건', 'event') : (R.lang === 'en' ? R.type(t).en.toLowerCase() : R.type(t).ko); };
-  var LABEL_ALIAS = { 'name': 'name', 'alias': 'alias', 'codename': 'alias', 'clearance': 'clearance', 'status': 'status', 'summary': 'summary', 'title': 'title', 'date': 'date', '이름': 'name', '명칭': 'name', '별칭': 'alias', '코드네임': 'alias', '코드 네임': 'alias', '등급': 'clearance', '보안 등급': 'clearance', '보안등급': 'clearance', '상태': 'status', '요약': 'summary', '설명': 'summary', '기록': 'body', '내용': 'body', '상세': 'body', '날짜': 'date', '일자': 'date', '사건명': 'title', '제목': 'title', '개요': 'desc' };
-
   function stripJosa(v) { return v.replace(/^["'“‘]|["'”’]$/g, '').replace(/\s*(이고|이며|이야|입니다|이에요|예요|이요|요)$/, '').trim(); }
-  /* 문장 속 "항목 값" 쌍 뽑기 (예: "이름은 한서윤이고 나이 31, 소속은 북부") */
-  function extract(text, type) {
-    var d = {}, fields = TPL[type] || [];
-    var labels = Object.keys(LABEL_ALIAS).concat(fields.filter(function (f) { return f.k.indexOf('f:') === 0; }).map(function (f) { return f.k.slice(2); }));
-    var low = text;
-    labels.sort(function (a, b) { return b.length - a.length; });
-    labels.forEach(function (lb) {
-      var re = new RegExp('(?:^|[\\s,，(]|\\b)' + lb + '\\s*(?:은|는|이|가|:|=|\\s+is|\\s+as)?\\s*([^,，.\\n]+?)\\s*(?=(?:,|，|\\.|\\n|이고\\s|이며\\s|이고$|이며$|$|그리고|\\s+and\\s|\\s+with\\s|\\s(?:' + labels.join('|') + ')))');
-      var m = text.match(new RegExp(re.source, 'i'));
-      if (!m) return;
-      var key = LABEL_ALIAS[lb.toLowerCase()] || LABEL_ALIAS[lb] || ('f:' + lb);
-      var v = m[1].replace(/\s*(인|으로|로)?\s*(문서|파일|기록)?\s*(만들|작성|생성|등록|추가)[\s\S]*$/, '');
-      // "KESTREL인 인물 문서" 처럼 값 뒤에 붙은 유형 설명 제거
-      var cut = v.replace(/(인|이라는|라는)?\s*(인물|조직|장소|물품|세계관|사건|사람|캐릭터|문서|파일)(\s[\s\S]*)?$/, '');
-      v = stripJosa(cut.trim() ? cut : v);
-      // 이름·별칭 뒤에 "인 극비 ..." 처럼 다른 설명이 이어지면 앞 낱말만 사용
-      if ((key === 'name' || key === 'alias') && /^(\S+?)인\s+\S/.test(v)) v = v.match(/^(\S+?)인\s/)[1];
-      if (key === 'clearance') { var c = clearanceOf(v); if (c != null) d.clearance = c; return; }
-      if (v && d[key] == null) d[key] = v;
-    });
-    if (d.name == null && d.title == null) {
-      var q = text.match(/["“'‘]([^"”'’]+)["”'’]/) || text.match(/(\S+?)(?:이라는|라는)\s/) || text.match(/\b(?:named|called)\s+([^,.]+?)(?:\s+(?:with|as|and)\b|[,.]|$)/i);
-      if (q) d[type === 'event' ? 'title' : 'name'] = q[1].trim();
-    }
-    if (d.clearance == null) { var c2 = clearanceOf(text.replace(/보안\s*등급/g, '')); if (c2 != null && /(극비|기밀|대외비|공개|top\s*secret|secret|restricted|unclassified)/i.test(text)) d.clearance = c2; }
-    return d;
-  }
-
-  /* ───────── 문서 작성 흐름 (Control → Apex → 누락 요청 → Control → 사용자) ───────── */
-  function startDoc(type, pre) {
-    var label = typeLabel(type);
-    C(fmt(Lx().create.toUser, { 유형: label }));
-    CA(fmt(type === 'event' ? Lx().event.toApex : Lx().create.toApex, { 유형: label }));
-    A(fmt(type === 'event' ? Lx().event.ack : Lx().create.ack, { 유형: label }));
-    var data = pre || {};
-    var missing = TPL[type].filter(function (f) { return data[f.k] == null; });
-    session = { kind: 'doc', type: type, data: data, queue: missing.slice(), cur: null };
-    if (!missing.length) return finishDoc();
-    A(fmt(Lx().create.missing, { n: missing.length, 목록: missing.map(Q).join(', ') }));
-    C(fmt(Lx().create.relay, { 목록: missing.map(Q).join(', ') }));
-    askNext(true);
-  }
-  function hintFor(f) {
-    if (f.k === 'clearance') return R.T(' (공개 · 대외비 · 기밀 · 극비)', ' (unclassified · restricted · secret · top secret)');
-    if (f.k === 'major') return R.T(' (예 / 아니오)', ' (yes / no)');
-    if (f.k === 'entities') return R.T(' (이름이나 코드, 여러 개면 쉼표로)', ' (names or codes, comma separated)');
-    if (f.k === 'date') return R.T(' (예: 2024-03-14)', ' (e.g. 2024-03-14)');
-    return f.req ? '' : ' ' + Lx().create.askOptionalNote;
-  }
-  function askNext(first) {
-    var f = session.queue[0];
-    session.cur = f;
-    C(fmt(first ? Lx().create.askFirst : Lx().create.ask, { 항목: Q(f) }) + hintFor(f));
-  }
-  function setField(d, f, v) {
-    if (f.k === 'clearance') { var c = clearanceOf(v); if (c == null) return false; d.clearance = c; return true; }
-    if (f.k === 'major') { d.major = /^(예|네|응|어|맞아|yes|y|true|major|주요)/i.test(v.trim()); return true; }
-    if (f.k === 'entities') { d.entities = mentions(v).map(function (e) { return e.id; }); return true; }
-    d[f.k] = v; return true;
-  }
-  function docInput(t) {
-    var s = session, f = s.cur;
-    if (/^(여기까지|그만\s*물어|나머지\s*(는\s*)?(생략|없음|패스|스킵)|이걸로\s*(됐|충분|끝)|완료|끝|done|finish|finished|that'?s\s*all|that\s*is\s*all|enough)$/i.test(t.trim())) {
-      var reqLeft = s.queue.filter(function (x) { return x.req; });
-      if (reqLeft.length) { C(fmt(Lx().create.badRequired, { 항목: Q(reqLeft[0]) })); session.cur = reqLeft[0]; s.queue = [reqLeft[0]].concat(s.queue.filter(function (x) { return x !== reqLeft[0]; })); return; }
-      return finishDoc();
-    }
-    if (/^(없음|없어|없어요|없습니다|모름|몰라|모르겠어|패스|스킵|건너뛰기|건너뛰어|넘어가|-|x|none|skip|pass|n\/a|na|no|unknown)$/i.test(t.trim())) {
-      if (f.req) { C(fmt(Lx().create.badRequired, { 항목: Q(f) })); return; }
-      A(fmt(Lx().create.skip, { 항목: Q(f) }), { wait: 220 });
-      s.queue.shift();
-      return s.queue.length ? askNext(false) : finishDoc();
-    }
-    // 한 번에 여러 항목을 말한 경우도 반영
-    var extra = extract(t, s.type), filled = [];
-    s.queue.slice(1).forEach(function (x) { if (extra[x.k] != null) { s.data[x.k] = extra[x.k]; filled.push(x); } });
-    var val = extra[f.k] != null ? String(extra[f.k]) : stripJosa(t);
-    if (f.k === 'clearance' && extra.clearance != null) val = String(extra.clearance);
-    if (!setField(s.data, f, val)) { C(Lx().create.badClearance); return; }
-    filled.unshift(f);
-    A(filled.map(function (x) { return fmt(Lx().create.fill, { 항목: Q(x) }); }).join(' '), { wait: 240 });
-    s.queue = s.queue.filter(function (x) { return filled.indexOf(x) < 0; });
-    return s.queue.length ? askNext(false) : finishDoc();
-  }
-  function finishDoc() {
-    var s = session; session = null;
-    var d = s.data;
-    if (s.type === 'event') {
-      var ev = { id: R.uid(), date: d.date || '', title: d.title || R.T('제목 없음', 'Untitled'), desc: d.desc || '', major: !!d.major, entities: d.entities || [] };
-      db().events.push(ev);
-      R.log('DATA', R.T('사건 기록 ', 'Event logged ') + (ev.date ? ev.date + ' ' : '') + ev.title);
-      R.store.save();
-      A(Lx().create.eventDone, { pre: [{ t: (ev.date || R.T('날짜 미상', 'undated')) + '  ' + ev.title, c: 'hi' }, ev.desc ? { t: ev.desc, c: 'mut' } : null].filter(Boolean) });
-      C(fmt(Lx().create.eventReport, { 이름: ev.title }));
-      return;
-    }
-    var e = {
-      id: R.uid(), no: ++db().seq, type: s.type, name: d.name || R.T('이름 없음', 'Unnamed'), alias: d.alias || '', clearance: d.clearance != null ? d.clearance : 1,
-      status: d.status || '', summary: d.summary || '', body: d.body || '', tags: [], image: '', created: Date.now(), updated: Date.now(),
-      fields: TPL[s.type].filter(function (f) { return f.k.indexOf('f:') === 0 && d[f.k]; }).map(function (f) { return { k: Q(f), v: d[f.k] }; })
-    };
-    db().entities.push(e);
-    R.log('DATA', R.T('문서 등록 ', 'Filed ') + R.code(e) + ' ' + e.name + ' (Apex)');
-    R.store.save(); R.archiveRefresh();
-    A(fmt(Lx().create.done, { 코드: R.code(e) }), { pre: dossierLines(e) });
-    C(fmt(Lx().create.report, { 코드: R.code(e), 이름: e.name }));
-  }
 
   /* ───────── 그 밖의 요청 ───────── */
   function view(e) {
@@ -307,9 +187,9 @@
     R.log('SYS', R.T('문서 열람 ', 'Opened ') + R.code(e));
   }
   function list(type) {
-    var items = db().entities.filter(function (e) { return !type || e.type === type; }).sort(function (a, b) { return a.type === b.type ? a.no - b.no : R.TYPES.findIndex(function (k) { return k.id === a.type; }) - R.TYPES.findIndex(function (k) { return k.id === b.type; }); });
+    var items = R.A.entities.filter(function (e) { return !type || e.type === type; }).sort(function (a, b) { return a.type === b.type ? a.no - b.no : R.TYPES.findIndex(function (k) { return k.id === a.type; }) - R.TYPES.findIndex(function (k) { return k.id === b.type; }); });
     var seals = R.SEALED.filter(function (s) { return !type || s.type === type; });
-    if (!items.length && !seals.length) return C(db().entities.length ? Lx().view.noType : Lx().boot.empty);
+    if (!items.length && !seals.length) return C(R.A.entities.length ? Lx().view.noType : Lx().boot.empty);
     CA(Lx().view.listToApex, { wait: 280 });
     var lines = items.length ? listLines(items) : [];
     seals.forEach(function (s) { lines.splice(Math.max(0, lines.length - (items.length ? 1 : 0)), 0, { t: s.code + '  ' + fit('SEALED', 13) + fit(s.name, 20) + s.status, c: 'dim' }); });
@@ -319,15 +199,15 @@
   function search(q) {
     if (!q) return C(Lx().view.searchAsk);
     var ql = q.toLowerCase();
-    var hits = db().entities.filter(function (e) { return [e.name, e.alias, e.summary, e.body, e.status, R.code(e), e.tags.join(' '), e.fields.map(function (f) { return f.k + ' ' + f.v; }).join(' ')].join(' ').toLowerCase().indexOf(ql) >= 0; });
-    var evs = db().events.filter(function (v) { return (v.title + ' ' + v.desc + ' ' + v.date).toLowerCase().indexOf(ql) >= 0; });
+    var hits = R.A.entities.filter(function (e) { return [e.name, e.alias, e.summary, e.body, e.status, R.code(e), e.tags.join(' '), e.fields.map(function (f) { return f.k + ' ' + f.v; }).join(' ')].join(' ').toLowerCase().indexOf(ql) >= 0; });
+    var evs = R.A.events.filter(function (v) { return (v.title + ' ' + v.desc + ' ' + v.date).toLowerCase().indexOf(ql) >= 0; });
     CA(fmt(Lx().view.searchToApex, { q: q }), { wait: 280 });
     if (!hits.length && !evs.length) { A(fmt(Lx().view.searchHits, { n: 0 })); return C(fmt(Lx().view.searchNone, { q: q })); }
     A(fmt(Lx().view.searchHits, { n: hits.length + evs.length }), { pre: hits.map(function (e) { return { t: R.code(e) + '  ' + e.name + (e.summary ? '  ' + e.summary : '') }; }).concat(evs.map(function (v) { return { t: 'EVENT  ' + (v.date || R.T('날짜 미상', 'undated')) + '  ' + v.title, c: 'mut' }; })) });
     C(fmt(Lx().view.searchUser, { q: q }));
   }
   function events(target) {
-    var evs = db().events.filter(function (v) { return !target || v.entities.indexOf(target.id) >= 0; }).sort(R.byDate);
+    var evs = R.A.events.filter(function (v) { return !target || v.entities.indexOf(target.id) >= 0; }).sort(R.byDate);
     if (!evs.length) return C(Lx().event.none);
     CA(Lx().event.listToApex, { wait: 280 });
     var pre = [];
@@ -339,59 +219,11 @@
     C(Lx().event.listUser);
   }
   function stat() {
-    var d = db(), pre = [];
+    var d = R.A, pre = [];
     R.TYPES.forEach(function (t) { pre.push({ t: fit(t.code + ' ' + t.name, 14) + d.entities.filter(function (e) { return e.type === t.id; }).length }); });
     R.CLEAR.forEach(function (c) { pre.push({ t: fit(c.code, 14) + d.entities.filter(function (e) { return e.clearance === c.n; }).length, c: 'mut' }); });
     pre.push({ t: fit(R.T('관계', 'Links'), 14) + d.links.length }); pre.push({ t: fit(R.T('사건', 'Events'), 14) + d.events.length }); pre.push({ t: fit(R.T('봉인', 'Sealed'), 14) + R.SEALED.length, c: 'dim' });
     CA(Lx().stat.toApex, { wait: 260 }); A(Lx().stat.ack, { pre: pre }); C(Lx().stat.toUser);
-  }
-  var EDIT_LABELS = ['보안 등급', '보안등급', '코드네임', '코드 네임', '이름', '별칭', '등급', '상태', '요약', '설명', '기록', '내용'];
-  function edit(e, t) {
-    var labels = EDIT_LABELS.concat(e.fields.map(function (f) { return f.k; })).concat(Object.keys(TPL).reduce(function (a, k) { return a.concat(TPL[k].filter(function (f) { return f.k.indexOf('f:') === 0; }).map(function (f) { return f.k.slice(2); })); }, []));
-    labels.sort(function (a, b) { return b.length - a.length; });
-    var lb = null, val = null;
-    for (var i = 0; i < labels.length; i++) {
-      var re = new RegExp(labels[i] + '\\s*(?:을|를|은|는|이|가)?\\s*(.+?)\\s*(?:으로|로)\\s*(?:바꿔|변경|수정|고쳐|갱신|해|설정|등록)');
-      var m = t.match(re); if (m) { lb = labels[i]; val = m[1]; break; }
-    }
-    if (!lb) { var g = t.match(/\s(\S+?)(?:을|를|은|는)\s+(.+?)\s*(?:으로|로)\s*(?:바꿔|변경|수정|고쳐|갱신|해|설정)/); if (g) { lb = g[1]; val = g[2]; } }
-    if (!lb) return C(Lx().edit.need);
-    val = stripJosa(val);
-    var key = LABEL_ALIAS[lb], before;
-    if (key === 'clearance') { var c = clearanceOf(val); if (c == null) return C(Lx().create.badClearance); before = R.CLEAR[e.clearance].code; e.clearance = c; val = R.CLEAR[c].code; }
-    else if (key === 'name' || key === 'alias' || key === 'status' || key === 'summary' || key === 'body') { before = e[key] || R.T('(공란)', '(blank)'); e[key] = val; }
-    else { var f = e.fields.find(function (x) { return x.k === lb; }); before = f ? f.v : R.T('(신규)', '(new)'); if (f) f.v = val; else e.fields.push({ k: lb, v: val }); }
-    e.updated = Date.now();
-    R.log('DATA', R.T('문서 수정 ', 'Updated ') + R.code(e) + ' · ' + lb + ' (Apex)'); R.store.save(); R.archiveRefresh();
-    CA(fmt(Lx().edit.toApex, { 코드: R.code(e), 항목: lb, 값: val }), { wait: 280 });
-    A(fmt(Lx().edit.ack, { 코드: R.code(e), 항목: lb, 이전: before, 값: val }));
-    C(fmt(Lx().edit.toUser, { 코드: R.code(e), 이름: e.name, 항목: lb }));
-  }
-  function link(ms, t) {
-    if (ms.length < 2) return C(Lx().link.need);
-    var a = ms[0], b = ms[1];
-    var m = t.match(/(\S+?)\s*(?:관계로|으로|로)\s*(?:연결|이어|묶어|등록)/) || t.match(/관계(?:는|은|:)?\s*(\S+)/);
-    var label = m ? stripJosa(m[1]) : '';
-    if (label && mentions(label).length) label = '';
-    db().links.push({ id: R.uid(), a: a.id, b: b.id, label: label });
-    R.log('DATA', R.T('관계 연결 ', 'Linked ') + R.code(a) + ' → ' + R.code(b) + (label ? ' [' + label + ']' : '') + ' (Apex)'); R.store.save(); R.archiveRefresh();
-    CA(fmt(Lx().link.toApex, { A: R.code(a), B: R.code(b), 관계: label || R.T('관계', 'link') }), { wait: 280 });
-    A(fmt(Lx().link.ack, { A: R.code(a), B: R.code(b), 관계: label || R.T('관계', 'link') }));
-    C(fmt(Lx().link.toUser, { A이름: a.name, B이름: b.name }));
-  }
-  function askDelete(e) {
-    session = { kind: 'confirm', e: e };
-    C(fmt(Lx().del.confirm, { 코드: R.code(e), 이름: e.name }));
-  }
-  function doDelete(e) {
-    var d = db(), n = d.links.filter(function (l) { return l.a === e.id || l.b === e.id; }).length;
-    d.entities = d.entities.filter(function (x) { return x.id !== e.id; });
-    d.links = d.links.filter(function (l) { return l.a !== e.id && l.b !== e.id; });
-    d.events.forEach(function (v) { v.entities = v.entities.filter(function (id) { return id !== e.id; }); });
-    R.log('DATA', R.T('문서 삭제 ', 'Deleted ') + R.code(e) + ' ' + e.name + ' (Apex)'); R.store.save(); R.archiveRefresh();
-    CA(fmt(Lx().del.toApex, { 코드: R.code(e) }), { wait: 260 });
-    A(fmt(Lx().del.ack, { 코드: R.code(e), n: n }));
-    C(Lx().del.toUser);
   }
   function help() { C(Lx().smalltalk.help, { pre: Lx().help }); }
 
@@ -415,27 +247,15 @@
     R.log('SYS', R.T('표시 언어: 한국어', 'Display language: English'));
   }
 
+  /* 아카이브는 열람 전용: 작성 · 수정 · 삭제 · 관계 연결 · 사건 기록 요청은 거절 */
+  function readOnly() {
+    CA(Lx().ro.toApex, { wait: 240 });
+    A(Lx().ro.apex);
+    C(Lx().ro.user);
+  }
+
   /* ───────── 입력 해석 ───────── */
   function handle(t) {
-    if (session) {
-      if (/^(취소|그만|중단|멈춰|cancel|abort|stop)/i.test(t.trim())) {
-        var was = session; session = null;
-        if (was.kind === 'doc') { CA(Lx().create.stopApex, { wait: 200 }); A(Lx().create.cancelApex); C(Lx().create.cancel); }
-        else C(Lx().cancelled);
-        return;
-      }
-      if (session.kind === 'confirm') {
-        var e = session.e; session = null;
-        if (/^(응|네|예|어|그래|진행|삭제|ㅇ|ok|okay|yes|y|confirm)/i.test(t.trim())) return doDelete(e);
-        return C(Lx().del.cancel);
-      }
-      if (session.kind === 'pickType') {
-        var ty = typeOf(t); session = null;
-        if (!ty) { session = { kind: 'pickType', pre: {} }; return C(Lx().create.askType); }
-        return startDoc(ty, extract(t, ty));
-      }
-      if (session.kind === 'doc') return docInput(t);
-    }
     // ── 명령어 (정확히 이 낱말일 때) ──
     var cmd = t.trim().toLowerCase().replace(/[.!?]+$/, '');
     if (/^(도움말|도움|help|\?|명령어|commands?)$/.test(cmd)) return help();
@@ -464,14 +284,9 @@
     if (/(타임라인|연대기|연표|timeline|chronicle)/i.test(t) && !wantCreate) { C(Lx().module.timeline, { wait: 200 }); chain = chain.then(function () { R.go('timeline', ms[0] ? { entity: ms[0].id } : {}); }); return; }
     if (/(보안\s*(설정|창|메뉴)|설정\s*(창|열어|보여)|^보안$|^security$|security\s+settings|open\s+settings)/i.test(t.trim())) { C(Lx().module.security, { wait: 200 }); chain = chain.then(function () { R.go('security'); }); return; }
     if (/(파일|문서)\s*(창|관리)/i.test(t)) { C(Lx().module.files, { wait: 200 }); chain = chain.then(function () { R.go('files', ms[0] ? { select: ms[0].id } : {}); }); return; }
-    if (/(삭제|지워|폐기|없애|\b(delete|remove|destroy)\b)/i.test(t)) { if (!ms.length) return C(Lx().del.need); return askDelete(ms[0]); }
-    if (/(연결|이어\s*줘|이어줘|관계\s*(맺|추가|등록)|\b(link|connect)\b)/i.test(t)) return link(ms, t);
-    if (ms.length && /(바꿔|변경|수정|고쳐|갱신|으로\s*해|로\s*해|설정해|\b(change|set|update)\b)/i.test(t)) return edit(ms[0], t);
-    if (wantCreate) {
-      var ty2 = typeOf(t);
-      if (!ty2) { CA(Lx().create.prepApex, { wait: 220 }); A(Lx().create.apexAskType); session = { kind: 'pickType' }; return C(Lx().create.askType); }
-      return startDoc(ty2, extract(t, ty2));
-    }
+    // 작성 · 수정 · 삭제 · 관계 연결 · 사건 기록 → 열람 전용 안내
+    var wantChange = wantCreate || /(삭제|지워|폐기|없애|연결해|이어\s*줘|이어줘|관계\s*(맺|추가|등록)|바꿔|변경해|수정|고쳐|갱신|편집|\b(delete|remove|destroy|link|connect|edit|update|modify|change)\b)/i.test(t);
+    if (wantChange && !/(코드|암호|비밀번호|패스워드|언어|code|password|language)/i.test(t)) return readOnly();
     if (/(사건|이벤트).*(목록|보여|알려|정리|뭐)|\b(list|show)\s+(the\s+)?events\b|^events$/i.test(t.trim())) return events(ms[0] || null);
     if (/(목록|리스트|전체|전부|모두|다\s*보여|\b(list|index|all)\b)/i.test(t)) return list(typeOf(t));
     if (/(검색|찾아|찾기|찾아줘|\b(search|find|look\s+for)\b)/i.test(t)) {
@@ -506,8 +321,8 @@
     boot: function () {
       out.innerHTML = ''; session = null; chain = Promise.resolve();
       C(Lx().boot.control, { wait: 500 });
-      A(fmt(Lx().boot.apex, { n: db().entities.length, s: R.SEALED.length }), { wait: 350 });
-      if (!db().entities.length) C(Lx().boot.empty, { wait: 300 });
+      A(fmt(Lx().boot.apex, { n: R.A.entities.length, s: R.SEALED.length }), { wait: 350 });
+      if (!R.A.entities.length) C(Lx().boot.empty, { wait: 300 });
       C(Lx().boot.hint, { wait: 200 });
     }
   };

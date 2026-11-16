@@ -133,7 +133,7 @@
         summary: String(e.summary || ''), body: String(e.body || ''),
         tags: Array.isArray(e.tags) ? e.tags.map(String) : [],
         fields: Array.isArray(e.fields) ? e.fields.filter(function (f) { return f && (f.k || f.v); }).map(function (f) { return { k: String(f.k || ''), v: String(f.v || '') }; }) : [],
-        image: typeof e.image === 'string' && e.image.indexOf('data:image/') === 0 ? e.image : '',
+        image: typeof e.image === 'string' && (e.image.indexOf('data:image/') === 0 || /^lore\/[\w\-./]+\.(png|jpe?g|webp|gif)$/i.test(e.image)) ? e.image : '',
         created: +e.created || Date.now(), updated: +e.updated || Date.now()
       };
     });
@@ -164,6 +164,16 @@
   };
   R.onLog = function (fn) { logListeners.push(fn); };
   R.flushPendingLogs = function () { var q = pendingLogs; pendingLogs = []; q.forEach(function (x) { R.log(x.l, x.m); }); };
+
+  /* ── 아카이브 = 앱에 내장된 세계관 문서 (lore.js). 열람 전용: 앱 안에서 만들거나 고칠 수 없음 ── */
+  var loreCache = null;
+  Object.defineProperty(R, 'A', { get: function () {
+    if (!loreCache) {
+      try { var n = R.normalize(window.RSSLore || { entities: [] }); loreCache = { entities: n.entities, links: n.links, events: n.events }; }
+      catch (e) { console.error(e); loreCache = { entities: [], links: [], events: [] }; }
+    }
+    return loreCache;
+  } });
 
   R.code = function (e) { return e.sealed ? e.code : R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
 

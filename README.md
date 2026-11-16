@@ -36,16 +36,22 @@
 | `잠금` · `lock` | 보관소 잠그기 |
 | `관계도` · `타임라인` · `보안` | 각 창 열기 |
 
-그 밖의 일(문서 작성 · 열람 · 목록 · 검색 · 수정 · 관계 연결 · 삭제 · 사건 기록 · 백업)은 평소 말투로 Control 에게 요청합니다.
+그 밖의 일(문서 열람 · 목록 · 검색 · 사건 목록 · 현황 · 백업)은 평소 말투로 Control 에게 요청합니다.
+
+## 아카이브는 열람 전용
+
+이 앱은 세계관 열람용입니다. 앱 안에서는 문서를 만들거나 고치거나 지울 수 없습니다 (Control 에게 요청해도 거절합니다).
+세계관 문서는 `src/js/lore.js` 에 적힌 것만 아카이브 · 관계도 · 타임라인에 나옵니다. 파일 맨 위에 형식 설명이 있습니다.
+문서를 추가하거나 고친 뒤 `package.json` 의 `version` 을 올려 `main` 에 병합하면 새 설치 파일이 배포됩니다.
 
 ## Control · Apex
 
 | AI | 역할 |
 |---|---|
 | **Control** | 사용자와 대화하는 AI. 요청을 받아 Apex 에게 일을 시킵니다. |
-| **Apex** | 정보 관리 전용 AI. 문서 템플릿을 채우고, 빠진 항목은 Control 에게 요청합니다. |
+| **Apex** | 정보 관리 전용 AI. 아카이브를 조회하고 봉인 문서 접근을 판단합니다. |
 
-문서 작성 흐름: 사용자 → Control("Apex 에게 맡기겠습니다") → Apex(템플릿 전개, 누락 항목 보고) → Control(사용자에게 하나씩 질문) → Apex(문서 등록)
+요청 흐름: 사용자 → Control → (Apex 에게 지시) → Apex 가 아카이브를 조회해 보고 → Control 이 사용자에게 전달
 
 ## 메신저 (`msg`)
 
@@ -67,7 +73,7 @@ npm start          # 앱 실행
 npm run dist       # Windows exe 빌드 (Windows에서 실행)
 ```
 
-`main` 으로 가는 PR 은 Windows 빌드만 확인하고, `main` 에 병합되면 GitHub Actions가 exe를 빌드해 `package.json` 버전으로 Release(`v3.2.0` 등)에 올립니다. 새 릴리즈를 만들려면 `version` 을 올려서 병합하세요.
+`main` 으로 가는 PR 은 Windows 빌드만 확인하고, `main` 에 병합되면 GitHub Actions가 exe를 빌드해 `package.json` 버전으로 Release(`v3.3.0` 등)에 올립니다. 새 릴리즈를 만들려면 `version` 을 올려서 병합하세요.
 
 아이콘은 `src/js/emblem.js` 벡터 문장으로 만들어집니다. 문장을 바꿨다면 `node scripts/make-icon.js` (playwright, png-to-ico 필요)로 `build/icon.ico`를 다시 생성합니다.
 
