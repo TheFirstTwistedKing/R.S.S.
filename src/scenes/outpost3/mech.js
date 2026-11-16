@@ -7,8 +7,8 @@
   var T = window.THREE, S = window.__scene;
   if (!T || !S || !window.RSS_MECH_GLB) return;
   var TP = /[?&]tp=1/.test(location.search), FEED = S.FEED;
-  var HEIGHT = 6.2;                      // 로봇 키 (본관 2층 지붕보다 조금 낮게)
-  var SPEED = 2.3;                       // 걷는 속도 (장면 단위/초)
+  var HEIGHT = 2.8;                      // 로봇 키 (별관 지붕 높이쯤)
+  var SPEED = 1.05;                       // 걷는 속도 (장면 단위/초)
 
   /* ── 순찰 경로: 기지 앞쪽 눈밭을 도는 닫힌 곡선 (건물 · 통로 밑은 피함) ── */
   var path = new T.CatmullRomCurve3([
@@ -74,7 +74,7 @@
     }
 
     /* ── 발자국 (큰 금속 발 자국, 오래된 것부터 지워짐) ── */
-    var fpGeo = new T.PlaneGeometry(0.9, 1.5).rotateX(-Math.PI / 2);
+    var fpGeo = new T.PlaneGeometry(0.42, 0.7).rotateX(-Math.PI / 2);
     var fpMat = new T.MeshBasicMaterial({ color: 0x9aa7bd, transparent: true, opacity: 0.55, depthWrite: false });
     fpMat.userData.outlineParameters = { visible: false };
     var prints = [], printIdx = 0;
@@ -86,21 +86,21 @@
     /* ── 발 디딜 때 튀는 눈가루 ── */
     var puffN = 90, puffPos = new Float32Array(puffN * 3), puffVel = new Float32Array(puffN * 3), puffLife = new Float32Array(puffN), puffI = 0;
     var puffGeo = new T.BufferGeometry(); puffGeo.setAttribute('position', new T.BufferAttribute(puffPos, 3));
-    var puff = new T.Points(puffGeo, new T.PointsMaterial({ color: 0xf4f7fc, size: 0.45, map: S.SOFTDOT, transparent: true, opacity: 0.85, depthWrite: false }));
+    var puff = new T.Points(puffGeo, new T.PointsMaterial({ color: 0xf4f7fc, size: 0.22, map: S.SOFTDOT, transparent: true, opacity: 0.85, depthWrite: false }));
     puff.frustumCulled = false; S.scene.add(puff);
     for (var q = 0; q < puffN; q++) puffPos[q * 3 + 1] = -999;
     function kick(x, y, z) {
       for (var n = 0; n < 12; n++) {
-        var j = puffI++ % puffN, a = Math.random() * Math.PI * 2, sp = 0.8 + Math.random() * 1.6;
+        var j = puffI++ % puffN, a = Math.random() * Math.PI * 2, sp = 0.4 + Math.random() * 0.75;
         puffPos[j * 3] = x; puffPos[j * 3 + 1] = y + 0.1; puffPos[j * 3 + 2] = z;
-        puffVel[j * 3] = Math.cos(a) * sp; puffVel[j * 3 + 1] = 1 + Math.random() * 1.5; puffVel[j * 3 + 2] = Math.sin(a) * sp; puffLife[j] = 1;
+        puffVel[j * 3] = Math.cos(a) * sp; puffVel[j * 3 + 1] = 0.5 + Math.random() * 0.7; puffVel[j * 3 + 2] = Math.sin(a) * sp; puffLife[j] = 1;
       }
     }
 
     /* ── 걷기 ── */
     var dist = 0, phase = 0, lastStep = 0, shake = 0, yaw = 0, look = 0, pitch = -0.1;
     var pos = new T.Vector3(), ahead = new T.Vector3(), headW = new T.Vector3(), fwd = new T.Vector3();
-    var stride = 3.2;                    // 한 걸음 길이 (두 걸음 = 한 주기)
+    var stride = 1.45;                    // 한 걸음 길이 (두 걸음 = 한 주기)
     S.frameHooks.push(function (dt, t) {
       dist = (dist + SPEED * dt) % pathLen;
       var u = dist / pathLen;
@@ -140,8 +140,10 @@
       var step = Math.floor(phase / Math.PI);
       if (step !== lastStep) {
         lastStep = step;
-        var side = (step % 2 ? 1 : -1) * 0.9, fx = pos.x + Math.cos(yaw) * side, fz = pos.z - Math.sin(yaw) * side;
+        var side = (step % 2 ? 1 : -1) * 0.4, fx = pos.x + Math.cos(yaw) * side, fz = pos.z - Math.sin(yaw) * side;
         stamp(fx, fz, yaw); kick(fx, S.height(fx, fz), fz); shake = 1;
+        // 발소리는 앱 쪽 소리 엔진이 냄 (감시 창 안에 있을 때만)
+        if (window.parent !== window) window.parent.postMessage({ rss: 'mech-step', side: step % 2 ? 1 : -1 }, '*');
       }
       shake = Math.max(0, shake - dt * 3.2);
       // 눈가루 움직임
@@ -160,14 +162,14 @@
         bones.Head.getWorldPosition(headW);
         var dir = yaw + look * 0.85;
         fwd.set(Math.sin(dir), 0, Math.cos(dir));
-        S.camera.position.copy(headW).addScaledVector(fwd, 0.55);
-        S.camera.position.y += 0.25 - shake * shake * 0.12;
+        S.camera.position.copy(headW).addScaledVector(fwd, 0.25);
+        S.camera.position.y += 0.12 - shake * shake * 0.055;
         // 카메라는 -Z 를 보므로 방향에 π 를 더함 (YXZ: 좌우 → 위아래 → 기울기)
         S.camera.rotation.set(pitch + shake * shake * 0.02, dir + Math.PI, Math.sin(phase) * 0.012, 'YXZ');
       } else if (TP) {
         var back = new T.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-        S.camera.position.set(pos.x, gy + 7, pos.z).addScaledVector(back, 13);
-        S.camera.lookAt(pos.x, gy + 3, pos.z);
+        S.camera.position.set(pos.x, gy + 3.2, pos.z).addScaledVector(back, 6);
+        S.camera.lookAt(pos.x, gy + 1.4, pos.z);
       }
       // 감시 화면 정보 (방위 · 속도 · 좌표)
       if (window.__feedHud) window.__feedHud({ heading: ((dir2deg(yaw + look * 0.85)) + 360) % 360, speed: SPEED * 3.6, x: pos.x, z: pos.z, alt: gy });

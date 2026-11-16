@@ -1,4 +1,4 @@
-/* 시뮬레이션 창: "시뮬레이션 <장소>" 로 화면 오른쪽 위에 1/4 크기 감시 화면을 띄움.
+/* 캠 창: 캠 코드(예: A-001)를 입력하면 화면 오른쪽 위에 1/4 크기 감시 화면을 띄움.
    장소에 영상(feed)이 있으면 순찰 로봇 머리 카메라의 1인칭 영상을 받음 (잡음 · 녹화 표시).
    영상이 15초 안에 들어오지 않거나 영상이 없는 장소면 NO SIGNAL.
    F4: 시뮬레이션 창 전체화면 전환 */
@@ -6,26 +6,18 @@
   'use strict';
   var R = window.RSS, h = R.h;
 
-  /* 등록 장소 (세계 › 행정구역 › 장소). 나중에 장소를 늘리려면 여기에 추가 */
-  R.SIM_PLACES = [
-    { id: 'vmk-cw-n03', code: 'VMK-CW-N03', world: '버믹쿠루시아', region: '천공월아 본부', site: '북부 산골짜기 제 3초소', cam: 'MK-03 CAM', feed: 'scenes/outpost3/index.html?feed=1' }
+  /* 등록 캠. 나중에 캠을 늘리려면 여기에 추가 (code 가 입력하는 캠 코드) */
+  R.CAMS = [
+    { code: 'A-001', unit: 'MK-03', feed: 'scenes/outpost3/index.html?feed=1' }
   ];
   var squash = function (t) { return String(t || '').toLowerCase().replace(/[\s·\-_/>›]+/g, ''); };
-  /* 입력에서 장소 찾기: 장소 · 행정구역 · 세계 이름 중 어느 것이 들어 있어도 됨 (해당하는 곳이 하나일 때) */
-  R.simFind = function (q) {
+  /* 입력 안에서 캠 코드 찾기 (A-001 · a001 · A 001 모두 같음) */
+  R.camFind = function (q) {
     var s = squash(q);
-    if (!s) return { none: true };
-    var hit = R.SIM_PLACES.filter(function (p) {
-      return [p.site, p.region, p.world, p.code].some(function (n) { var k = squash(n); return s.indexOf(k) >= 0 || (s.length >= 3 && k.indexOf(s) >= 0); });
-    });
-    // 같은 단계에서 더 구체적으로 맞은 곳 우선 (장소 이름이 들어 있으면 그곳)
-    var exact = hit.filter(function (p) { return s.indexOf(squash(p.site)) >= 0; });
-    if (exact.length === 1) return { place: exact[0] };
-    if (hit.length === 1) return { place: hit[0] };
-    if (!hit.length) return { unknown: q };
-    return { many: hit };
+    for (var i = 0; i < R.CAMS.length; i++) if (s.indexOf(squash(R.CAMS[i].code)) >= 0) return R.CAMS[i];
+    return null;
   };
-  R.simPath = function (p) { return p.world + ' › ' + p.region + ' › ' + p.site; };
+  R.camCodeIn = function (t) { return /\b[a-z]\s*-?\s*\d{3}\b/i.test(String(t || '')); };
 
   var el = null, cur = null, live = false, waitT = 0, noise = { raf: 0, last: 0, cv: null, g: null, img: null }, clockT = 0;
 
@@ -44,14 +36,14 @@
 
   function build(p) {
     var cv = h('canvas', { class: 'sim-noise', width: 288, height: 162 });
-    var view = p.feed ? h('iframe', { class: 'sim-view', src: p.feed, title: p.site, tabindex: '-1', 'aria-hidden': 'true' }) : null;
+    var view = p.feed ? h('iframe', { class: 'sim-view', src: p.feed, title: 'CAM ' + p.code, tabindex: '-1', 'aria-hidden': 'true' }) : null;
     var link = h('span', { class: 'h-br' }, 'LINK 0% · ' + R.T('수신 대기', 'AWAITING'));
     var clock = h('span', { class: 'sim-clock' });
-    var root = h('section', { class: 'sim', role: 'dialog', 'aria-label': 'Simulation' },
+    var root = h('section', { class: 'sim', role: 'dialog', 'aria-label': 'Camera ' + p.code },
       h('div', { class: 'win-h sim-h' },
-        h('span', { class: 'win-k' }, 'SIM-01'),
-        h('span', { class: 'win-t' }, p.site),
-        h('span', { class: 'win-s' }, p.world + ' › ' + p.region),
+        h('span', { class: 'win-k' }, 'CAM'),
+        h('span', { class: 'win-t' }, p.code),
+        h('span', { class: 'win-s' }, p.unit + ' · ' + R.T('순찰 로봇', 'PATROL UNIT')),
         h('button', { class: 'mod-x sim-btn', type: 'button', title: 'F4', onclick: function () { R.sim.toggleFull(); } }, 'F4 ' + R.T('전체화면', 'FULL')),
         h('button', { class: 'mod-x sim-btn', type: 'button', 'aria-label': R.T('닫기', 'Close'), onclick: function () { R.sim.close(true); } }, '✕')),
       h('div', { class: 'sim-feed' },
@@ -59,9 +51,8 @@
         cv,
         h('div', { class: 'sim-scan' }),
         h('div', { class: 'sim-hud' },
-          h('span', { class: 'h-tl' }, p.cam + ' · ' + p.code),
+          h('span', { class: 'h-tl' }, 'CAM ' + p.code),
           h('span', { class: 'h-tr' }, h('i', { class: 'sim-rec' }), clock),
-          h('span', { class: 'h-bl' }, R.simPath(p)),
           link),
         h('div', { class: 'sim-corners' }, h('i'), h('i'), h('i'), h('i')),
         h('div', { class: 'sim-nosig' },
@@ -90,14 +81,14 @@
       clearTimeout(waitT);
       if (p.feed) waitT = setTimeout(function () { if (el && !live) lost(); }, 15000);
       else lost();
-      R.log('SYS', R.T('시뮬레이션 연결 ', 'Simulation link ') + p.code + (p.feed ? R.T(' · 영상 요청', ' · requesting video') : R.T(' · 신호 없음', ' · no signal')));
+      R.log('SYS', R.T('캠 연결 ', 'Camera link ') + p.code + (p.feed ? R.T(' · 영상 요청', ' · requesting video') : R.T(' · 신호 없음', ' · no signal')));
     },
     close: function (byUser) {
       if (!el) return;
       clearInterval(clockT); clearTimeout(waitT); live = false;
       cancelAnimationFrame(noise.raf); noise.raf = 0;
       el.remove(); el = null;
-      if (byUser && cur) R.log('SYS', R.T('시뮬레이션 종료 ', 'Simulation closed ') + cur.code);
+      if (byUser && cur) R.log('SYS', R.T('캠 종료 ', 'Camera closed ') + cur.code);
       cur = null;
       if (R.term) R.term.focus();
     },
@@ -115,10 +106,10 @@
     live = true; clearTimeout(waitT);
     el.classList.add('sim-feed-on');
     // NO SIGNAL · 화면 잡음 · 겹 주사선을 걷어냄 (영상 쪽에 잡음과 주사선이 따로 있음)
-    ['.sim-nosig', '.sim-noise', '.sim-scan', '.h-bl'].forEach(function (q) { var x = el.querySelector(q); if (x) x.remove(); });
+    ['.sim-nosig', '.sim-noise', '.sim-scan'].forEach(function (q) { var x = el.querySelector(q); if (x) x.remove(); });
     cancelAnimationFrame(noise.raf); noise.raf = 0;
     el._link.textContent = 'LINK 100% · ' + R.T('수신 양호', 'SIGNAL OK');
-    R.log('SYS', R.T('영상 수신 ', 'Video in ') + cur.code + ' · ' + cur.cam);
+    R.log('SYS', R.T('영상 수신 ', 'Video in ') + cur.code + ' · ' + cur.unit);
   }
   /* 영상이 안 들어옴: NO SIGNAL 유지 */
   function lost() {
@@ -129,7 +120,9 @@
   }
   window.addEventListener('message', function (e) {
     var v = el && el.querySelector('.sim-view');
-    if (v && e.source === v.contentWindow && e.data && e.data.rss === 'feed-ready') onLive();
+    if (!v || e.source !== v.contentWindow || !e.data) return;
+    if (e.data.rss === 'feed-ready') onLive();
+    else if (e.data.rss === 'mech-step' && live) R.sound.mechStep(e.data.side);
   });
 
   /* F4: 시뮬레이션 전체화면 전환 · Esc: 전체화면이면 원래 크기로 */
