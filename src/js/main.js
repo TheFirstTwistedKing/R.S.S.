@@ -2,16 +2,13 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.2.1';
+  R.version = '3.3.0';
   var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'] };
   var destroy = null;
 
   /* 상단 아카이브 버튼의 문서 수 갱신 */
-  R.archiveRefresh = function () {
-    var d = R.store.db, el = $('#arcCount'); if (!d || !el) return; // (상단 버튼 없음: 호환용)
-    var c = function (t) { return d.entities.filter(function (e) { return e.type === t; }).length; };
-    el.textContent = '인물 ' + c('character') + ' · 세계관 ' + (c('lore') + R.SEALED.filter(function (s) { return s.type === 'lore'; }).length) + ' · 전체 ' + (d.entities.length + R.SEALED.length);
-  };
+  R.archiveRefresh = function () {};   // 아카이브는 내장 문서라 갱신할 것이 없음 (호환용)
+
 
   /* 모듈 창 열기 (터미널 명령이나 모듈 안 링크에서 호출) */
   R.go = function (name, opts) {
