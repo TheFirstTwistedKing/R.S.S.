@@ -10,9 +10,11 @@
   var HEIGHT = 2.8;                      // 로봇 키 (별관 지붕 높이쯤)
   var SPEED = 1.05;                       // 걷는 속도 (장면 단위/초)
 
-  /* ── 순찰 경로: 기지 앞쪽 눈밭을 도는 닫힌 곡선 (건물 · 통로 밑은 피함) ── */
+  /* ── 순찰 경로: 기지 앞 눈밭 → 오른쪽 언덕 기슭 → 오른쪽 건물 뒤 → 건물과 창고 사이로 내려와
+        얕은 협곡을 건너 다시 앞으로 도는 긴 닫힌 곡선 (건물 · 깊은 골짜기는 피함, 한 바퀴 약 5분) ── */
   var path = new T.CatmullRomCurve3([
-    [-34, 18], [-16, 31], [10, 34], [34, 26], [48, 10], [44, -2], [30, 12], [12, 19], [-10, 19], [-26, 12]
+    [-40, 22], [-18, 34], [8, 38], [34, 36], [52, 24], [57, 6], [54, -18], [44, -36], [28, -40], [14, -30],
+    [20, -18], [29, -12], [29, 2], [22, 12], [8, 22], [-20, 22]
   ].map(function (p) { return new T.Vector3(p[0], 0, p[1]); }), true, 'centripetal');
   var pathLen = path.getLength();
 
@@ -98,7 +100,7 @@
     }
 
     /* ── 걷기 ── */
-    var dist = 0, phase = 0, lastStep = 0, shake = 0, yaw = 0, look = 0, pitch = -0.1;
+    var gyS = null, dist = 0, phase = 0, lastStep = 0, shake = 0, yaw = 0, look = 0, pitch = -0.1;
     var pos = new T.Vector3(), ahead = new T.Vector3(), headW = new T.Vector3(), fwd = new T.Vector3();
     var stride = 1.45;                    // 한 걸음 길이 (두 걸음 = 한 주기)
     S.frameHooks.push(function (dt, t) {
@@ -109,7 +111,8 @@
       var dy = wantYaw - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 2.2);
       phase += SPEED * dt / stride * Math.PI;           // 한 걸음마다 π
       var s = Math.sin(phase), c = Math.cos(phase);
-      var gy = S.height(pos.x, pos.z);
+      // 눈 둔덕의 짧고 가파른 면에서 몸이 튀지 않게 땅 높이를 부드럽게 따라감
+      var gRaw = S.height(pos.x, pos.z); gyS = gyS == null ? gRaw : gyS + (gRaw - gyS) * Math.min(1, dt * 3); var gy = gyS;
       root.position.set(pos.x, gy - 0.05, pos.z);
       root.rotation.y = yaw;
       // 다리: 허벅지 앞뒤, 무릎은 발을 들 때만 굽힘, 발목은 땅과 평평하게
