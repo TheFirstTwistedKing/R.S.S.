@@ -53,13 +53,18 @@
   </div>
 </section>
 
-<!-- 메인: 터미널 + 로그 -->
+<!-- 메인: 대화창 + 로그 (상단에 문서 아카이브 버튼) -->
 <div id="app" class="app" hidden>
   <header class="topbar">
     <div class="tb-id">
       <div class="tb-em" id="topEmblem" aria-hidden="true"></div>
       <div class="tb-name"><b>R.S.S.</b><span>CENTRAL ARCHIVE</span></div>
     </div>
+    <button class="arc-btn" id="archiveBtn" type="button" aria-label="문서 아카이브 열기">
+      <span class="arc-k">ARC</span>
+      <span class="arc-txt"><b>DOCUMENT ARCHIVE</b><span id="arcCount">문서 아카이브</span></span>
+      <span class="arc-go" aria-hidden="true">OPEN ▸</span>
+    </button>
     <div class="tb-meta">
       <span><em>SESSION</em><b id="sessId">----</b></span>
       <span><em>CLEARANCE</em><b>LEVEL 3</b></span>
@@ -83,7 +88,6 @@
     </section>
     <section class="win win-log" aria-label="시스템 로그">
       <div class="win-h"><span class="win-k">LOG-1</span><span class="win-t">SYSTEM LOG</span><span class="win-s" id="logCount">0 ENTRIES</span><span class="win-led"></span></div>
-      <div class="radar-box"><canvas id="radar" class="radar"></canvas><div class="radar-cap"><b>ARCHIVE SCAN</b><span id="radarInfo">0 TARGETS</span></div></div>
       <div class="log" id="logList" role="log" aria-live="polite"></div>
     </section>
   </main>

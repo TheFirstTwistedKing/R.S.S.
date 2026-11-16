@@ -291,7 +291,7 @@
     };
     db().entities.push(e);
     R.log('DATA', '파일 등록 ' + R.code(e) + ' ' + e.name + ' (Apex)');
-    R.store.save(); R.fx.radarData();
+    R.store.save(); R.archiveRefresh();
     A(fmt(L.create.done, { 코드: R.code(e) }), { pre: dossierLines(e) });
     C(fmt(L.create.report, { 코드: R.code(e), 이름: e.name }));
   }
@@ -305,9 +305,12 @@
   }
   function list(type) {
     var items = db().entities.filter(function (e) { return !type || e.type === type; }).sort(function (a, b) { return a.type === b.type ? a.no - b.no : R.TYPES.findIndex(function (k) { return k.id === a.type; }) - R.TYPES.findIndex(function (k) { return k.id === b.type; }); });
-    if (!items.length) return C(db().entities.length ? '해당 유형의 파일이 없습니다.' : L.boot.empty);
+    var seals = R.SEALED.filter(function (s) { return !type || s.type === type; });
+    if (!items.length && !seals.length) return C(db().entities.length ? '해당 유형의 파일이 없습니다.' : L.boot.empty);
     CA(L.view.listToApex, { wait: 280 });
-    A('목록 ' + items.length + '건 출력.', { pre: listLines(items) });
+    var lines = items.length ? listLines(items) : [];
+    seals.forEach(function (s) { lines.splice(Math.max(0, lines.length - (items.length ? 1 : 0)), 0, { t: s.code + '  ' + fit('SEALED', 13) + fit(s.name, 20) + s.status, c: 'dim' }); });
+    A('목록 ' + (items.length + seals.length) + '건 출력. 봉인 ' + seals.length + '건 포함.', { pre: lines });
     C(L.view.listUser);
   }
   function search(q) {
@@ -356,7 +359,7 @@
     else if (key === 'name' || key === 'alias' || key === 'status' || key === 'summary' || key === 'body') { before = e[key] || '(공란)'; e[key] = val; }
     else { var f = e.fields.find(function (x) { return x.k === lb; }); before = f ? f.v : '(신규)'; if (f) f.v = val; else e.fields.push({ k: lb, v: val }); }
     e.updated = Date.now();
-    R.log('DATA', '파일 수정 ' + R.code(e) + ' · ' + lb + ' (Apex)'); R.store.save(); R.fx.radarData();
+    R.log('DATA', '파일 수정 ' + R.code(e) + ' · ' + lb + ' (Apex)'); R.store.save(); R.archiveRefresh();
     CA(fmt(L.edit.toApex, { 코드: R.code(e), 항목: lb, 값: val }), { wait: 280 });
     A(fmt(L.edit.ack, { 코드: R.code(e), 항목: lb, 이전: before, 값: val }));
     C(fmt(L.edit.toUser, { 코드: R.code(e), 이름: e.name, 항목: lb }));
@@ -368,7 +371,7 @@
     var label = m ? stripJosa(m[1]) : '';
     if (label && mentions(label).length) label = '';
     db().links.push({ id: R.uid(), a: a.id, b: b.id, label: label });
-    R.log('DATA', '관계 연결 ' + R.code(a) + ' → ' + R.code(b) + (label ? ' [' + label + ']' : '') + ' (Apex)'); R.store.save(); R.fx.radarData();
+    R.log('DATA', '관계 연결 ' + R.code(a) + ' → ' + R.code(b) + (label ? ' [' + label + ']' : '') + ' (Apex)'); R.store.save(); R.archiveRefresh();
     CA(fmt(L.link.toApex, { A: R.code(a), B: R.code(b), 관계: label || '관계' }), { wait: 280 });
     A(fmt(L.link.ack, { A: R.code(a), B: R.code(b), 관계: label || '관계' }));
     C(fmt(L.link.toUser, { A이름: a.name, B이름: b.name }));
@@ -382,7 +385,7 @@
     d.entities = d.entities.filter(function (x) { return x.id !== e.id; });
     d.links = d.links.filter(function (l) { return l.a !== e.id && l.b !== e.id; });
     d.events.forEach(function (v) { v.entities = v.entities.filter(function (id) { return id !== e.id; }); });
-    R.log('DATA', '파일 삭제 ' + R.code(e) + ' ' + e.name + ' (Apex)'); R.store.save(); R.fx.radarData();
+    R.log('DATA', '파일 삭제 ' + R.code(e) + ' ' + e.name + ' (Apex)'); R.store.save(); R.archiveRefresh();
     CA(fmt(L.del.toApex, { 코드: R.code(e) }), { wait: 260 });
     A(fmt(L.del.ack, { 코드: R.code(e), n: n }));
     C(L.del.toUser);
@@ -390,19 +393,28 @@
   function help() {
     C(L.smalltalk.help, {
       pre: [
-        { t: '문서 작성   "인물 문서 만들어줘" · "이름은 한서윤인 극비 인물 만들어줘"', c: '' },
+        { t: '문서 작성   "인물 문서 만들어줘" · "세계관 문서 만들어줘"', c: '' },
+        { t: '            "이름은 ○○이고 별칭은 ○○인 극비 인물 만들어줘"', c: 'mut' },
         { t: '사건 기록   "사건 기록해줘"' },
-        { t: '열람        "한서윤 보여줘" · "CHR-0001 열어줘"' },
-        { t: '목록·검색   "목록 보여줘" · "인물 목록" · "항만 검색해줘"' },
-        { t: '수정        "한서윤 상태를 사망으로 바꿔줘"' },
-        { t: '관계        "한서윤과 북부 지부를 소속으로 연결해줘"' },
-        { t: '삭제        "항만 7번 창고 삭제해줘"' },
+        { t: '열람        "○○ 보여줘" · "CHR-0001 열어줘"' },
+        { t: '목록·검색   "목록 보여줘" · "세계관 목록" · "○○ 검색해줘"' },
+        { t: '수정        "○○ 상태를 사망으로 바꿔줘"' },
+        { t: '관계        "○○과 ○○을 소속으로 연결해줘"' },
+        { t: '삭제        "○○ 삭제해줘"' },
         { t: '사건·현황   "사건 목록" · "현황 알려줘"' },
-        { t: '창 열기     "관계도 열어줘" · "타임라인" · "파일 창" · "보안 설정"' },
+        { t: '창 열기     "아카이브 열어줘" · "관계도" · "타임라인" · "보안 설정"' },
         { t: '보안        "백업해줘" · "백업 불러와줘" · "코드 바꿔줘" · "잠가줘"' },
         { t: '작성 중     "없음"(건너뛰기) · "여기까지"(마무리) · "취소"', c: 'dim' }
       ]
     });
+  }
+
+  /* 봉인 문서: Apex 가 호출을 시도하지만 미완성 · 승인 없음으로 출력 거부 */
+  function sealedReply(s) {
+    R.log('WARN', '봉인 문서 열람 요청 ' + s.code + ' · 승인 없음');
+    CA(fmt(L.sealed.toApex, { 코드: s.code, 이름: s.name }), { wait: 280 });
+    A(fmt(L.sealed.ack, { 코드: s.code, 이름: s.name }), { pre: [{ t: s.code + '   ' + s.name, c: 'hi' }, { t: fit('상태', 12) + '작성 미완료' }, { t: fit('열람 승인', 12) + '없음' }, { t: fit('출력', 12) + 'ACCESS DENIED', c: 'hi' }] });
+    C(fmt(L.sealed.toUser, { 코드: s.code, 이름: s.name }));
   }
 
   /* ───────── 입력 해석 ───────── */
@@ -426,6 +438,9 @@
       }
       if (session.kind === 'doc') return docInput(t);
     }
+    // 봉인 문서(I Archi 행성 등)에 대한 요청은 무엇이든 승인 거부
+    var seal = R.sealedIn(t);
+    if (seal.length) return sealedReply(seal[0]);
     var ms = mentions(t);
     var wantCreate = /(만들|작성|생성|추가|새로|새\s*(문서|파일)|써\s*줘|써줘|등록해|기록해)/.test(t);
     if (/^(도움|도와|help|\?)|뭘\s*할\s*수|무엇을\s*할\s*수|뭐\s*할\s*수|사용법|어떻게\s*(써|사용)/i.test(t)) return help();
@@ -439,11 +454,10 @@
       C(L.backup.out); chain = chain.then(function () { R.actions.exportEnc(); }); return;
     }
     if (/(접속\s*코드|코드|암호|비밀번호|패스워드).*(바꿔|변경|수정|교체)/.test(t)) { C(L.backup.code); chain = chain.then(function () { R.actions.changeCode(); }); return; }
-    if (/(예시|샘플|sample)/i.test(t)) { CA(L.sample.toApex, { wait: 220 }); chain = chain.then(function () { R.sample(); R.fx.radarData(); }); A(L.sample.ack); return C(L.sample.toUser); }
     if (/(관계도|그래프|네트워크|관계망)/.test(t) && !wantCreate) { C(L.module.graph, { wait: 200 }); chain = chain.then(function () { R.go('graph', ms[0] ? { focus: ms[0].id } : {}); }); return; }
     if (/(타임라인|연대기|연표)/.test(t) && !wantCreate) { C(L.module.timeline, { wait: 200 }); chain = chain.then(function () { R.go('timeline', ms[0] ? { entity: ms[0].id } : {}); }); return; }
     if (/(보안\s*(설정|창|메뉴)|설정\s*(창|열어|보여))/.test(t)) { C(L.module.security, { wait: 200 }); chain = chain.then(function () { R.go('security'); }); return; }
-    if (/(파일|문서)\s*(창|관리)/.test(t)) { C(L.module.files, { wait: 200 }); chain = chain.then(function () { R.go('files', ms[0] ? { select: ms[0].id } : {}); }); return; }
+    if (/아카이브|archive|(파일|문서)\s*(창|관리)/i.test(t)) { C(L.module.files, { wait: 200 }); chain = chain.then(function () { R.go('files', ms[0] ? { select: ms[0].id } : {}); }); return; }
     if (/(삭제|지워|폐기|없애)/.test(t)) { if (!ms.length) return C('삭제할 파일 이름이나 코드를 알려 주십시오.'); return askDelete(ms[0]); }
     if (/(연결|이어\s*줘|이어줘|관계\s*(맺|추가|등록))/.test(t)) return link(ms, t);
     if (ms.length && /(바꿔|변경|수정|고쳐|갱신|으로\s*해|로\s*해|설정해)/.test(t)) return edit(ms[0], t);
@@ -486,7 +500,7 @@
     boot: function () {
       out.innerHTML = ''; session = null; chain = Promise.resolve();
       C(L.boot.control, { wait: 500 });
-      A(fmt(L.boot.apex, { n: db().entities.length }), { wait: 350 });
+      A(fmt(L.boot.apex, { n: db().entities.length, s: R.SEALED.length }), { wait: 350 });
       if (!db().entities.length) C(L.boot.empty, { wait: 300 });
       C(L.boot.hint, { wait: 200 });
     }

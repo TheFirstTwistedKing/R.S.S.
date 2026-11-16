@@ -151,7 +151,35 @@
   R.onLog = function (fn) { logListeners.push(fn); };
   R.flushPendingLogs = function () { var q = pendingLogs; pendingLogs = []; q.forEach(function (x) { R.log(x.l, x.m); }); };
 
-  R.code = function (e) { return R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
+  R.code = function (e) { return e.sealed ? e.code : R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
+
+  /* ── 봉인 문서: 앱에 내장된 미완성 문서. 목록에는 보이지만 열람 승인이 없어 내용은 열리지 않음 ── */
+  R.SEALED = [
+    { sealed: true, id: 'sealed-iarchi', code: 'LOR-IA01', type: 'lore', name: 'I Archi(이아키) 행성', alias: 'I ARCHI',
+      clearance: 3, status: '미완성 · 승인 대기', match: /(i\s*-?\s*archi|이아키|아이\s*아키)/i }
+  ];
+  R.sealedIn = function (text) { return R.SEALED.filter(function (s) { return s.match.test(text); }); };
+
+  /* ── 이전 버전의 '예시 기록' 정리: 예시와 이름·요약이 정확히 같은 것만 지움 (사용자가 만든 기록은 그대로) ── */
+  var SAMPLE_FP = [
+    ['한서윤', '북부 지부 현장 요원. 장거리 감시 전문.'], ['북부 지부', '국경 지역 정보 수집을 담당하는 지부.'],
+    ['미상의 접촉자', '신원 미확인. 항만 지역에서 반복 목격.'], ['항만 7번 창고', '접촉이 이루어진 장소.'],
+    ['보안 등급 체계', '공개 · 대외비 · 기밀 · 극비 4단계.']
+  ];
+  var SAMPLE_EV = [['2024-03-11', 'KESTREL 귀환'], ['2024-03-14', '항만 7번 창고 접촉'], ['2024-03-20', '북부 지부 감시 작전 승인']];
+  R.purgeSamples = function (db) {
+    var gone = {};
+    db.entities = db.entities.filter(function (e) {
+      var hit = SAMPLE_FP.some(function (f) { return e.name === f[0] && e.summary === f[1]; });
+      if (hit) gone[e.id] = 1;
+      return !hit;
+    });
+    var n = Object.keys(gone).length, before = db.events.length;
+    db.links = db.links.filter(function (l) { return !gone[l.a] && !gone[l.b]; });
+    db.events = db.events.filter(function (v) { return !SAMPLE_EV.some(function (s) { return v.date === s[0] && v.title === s[1]; }); });
+    db.events.forEach(function (v) { v.entities = v.entities.filter(function (id) { return !gone[id]; }); });
+    return n + (before - db.events.length);
+  };
 
   var store = R.store = { db: null, key: null, envelope: null, dirty: false };
   store.load = function () {
@@ -208,6 +236,36 @@
       } catch (e) { /* 소리 실패는 무시 */ }
     },
     key: function () { this.stroke('key'); },
+    /* 마우스 클릭음 '달칵': 누를 때 날카로운 마이크로스위치 소리, 뗄 때 더 작고 높은 반동음 */
+    click: function (up) {
+      if (!this.on) return;
+      try {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        if (!noiseBuf) this.stroke('init');
+        if (!master) return;
+        var t = ctx.currentTime + 0.001, v = 0.92 + Math.random() * 0.16;
+        var burst = function (type, freq, q, peak, decay) {
+          var src = ctx.createBufferSource(); src.buffer = noiseBuf;
+          var f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + 0.0012); g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          src.connect(f); f.connect(g); g.connect(master);
+          src.start(t, Math.random() * 0.15); src.stop(t + decay + 0.01);
+        };
+        if (!up) {
+          burst('highpass', 3800 * v, 0.7, 0.42, 0.012);   // 딸
+          burst('bandpass', 1900 * v, 3.5, 0.5, 0.028);    // 칵 (스위치 몸체 공명)
+          var o = ctx.createOscillator(), og = ctx.createGain();
+          o.type = 'triangle'; o.frequency.value = 2900 * v;
+          og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.06, t + 0.001); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+          o.connect(og); og.connect(master); o.start(t); o.stop(t + 0.03);
+        } else {
+          burst('highpass', 4600 * v, 0.7, 0.18, 0.009);
+          burst('bandpass', 2400 * v, 4, 0.2, 0.018);
+        }
+      } catch (e) { /* 소리 실패는 무시 */ }
+    },
     /* 타자음: 녹음 파일 없이 코드로 합성한 플라스틱 키보드 소리.
        - 몸통: 대역 필터를 거친 잡음(낮은 '톡')  - 윗면: 높은 대역 잡음(딸깍)  - 바닥: 짧은 저음 사인파(무게감)
        - 키를 뗄 때 나는 작은 플라스틱 반동음
@@ -225,6 +283,7 @@
           var comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
           master.connect(comp); comp.connect(ctx.destination);
         }
+        if (kind === 'init') return;   // 공용 잡음 버퍼만 준비
         var t = ctx.currentTime + 0.002, v = 0.9 + Math.random() * 0.2;
         var heavy = kind === 'enter' || kind === 'space';
         var noise = function (type, freq, q, peak, decay, at) {

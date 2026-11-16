@@ -2,9 +2,16 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.0.0';
-  var MODS = { files: ['MOD-01', '파일 열람 · 편집'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
+  R.version = '3.1.0';
+  var MODS = { files: ['ARC-01', '문서 아카이브'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
   var destroy = null;
+
+  /* 상단 아카이브 버튼의 문서 수 갱신 */
+  R.archiveRefresh = function () {
+    var d = R.store.db, el = $('#arcCount'); if (!d || !el) return;
+    var c = function (t) { return d.entities.filter(function (e) { return e.type === t; }).length; };
+    el.textContent = '인물 ' + c('character') + ' · 세계관 ' + (c('lore') + R.SEALED.filter(function (s) { return s.type === 'lore'; }).length) + ' · 전체 ' + (d.entities.length + R.SEALED.length);
+  };
 
   /* 모듈 창 열기 (터미널 명령이나 모듈 안 링크에서 호출) */
   R.go = function (name, opts) {
@@ -14,7 +21,6 @@
     $('#modK').textContent = MODS[name][0]; $('#modT').textContent = MODS[name][1];
     var m = $('#module'), was = !m.hidden;
     m.hidden = false;
-    R.fx.radar(false); // 모듈이 화면을 덮는 동안 뒤의 레이더는 정지
     if (!was) { var w = m.querySelector('.mod-win'); w.style.animation = 'none'; void w.offsetWidth; w.style.animation = ''; }
     var r = R.views[name](view, opts || {});
     if (typeof r === 'function') destroy = r;
@@ -24,7 +30,7 @@
     var m = $('#module'); if (m.hidden) return;
     if (destroy) { try { destroy(); } catch (e) {} destroy = null; }
     m.hidden = true; $('#view').innerHTML = '';
-    R.fx.radar(true);
+    R.archiveRefresh();
     R.term.focus();
   }
   R.closeModule = closeModule;
@@ -34,7 +40,7 @@
     closeModule();
     var md = $('#modal'); md.hidden = true; md.innerHTML = '';
     R.log('SEC', '세션 잠금 · ' + R.sessionId);
-    R.fx.radar(false);
+
     R.store.lock().then(function () {
       $('#termOut').innerHTML = ''; $('#logList').innerHTML = '';
       $('#app').hidden = true;
@@ -50,9 +56,12 @@
     var app = $('#app');
     app.hidden = false; app.classList.remove('on'); void app.offsetWidth; app.classList.add('on');
     setTimeout(function () { app.classList.remove('on'); }, 1400);
+    // 이전 버전에서 만들어진 예시 기록 정리 (한 번만 해당)
+    var purged = R.purgeSamples(R.store.db);
+    if (purged) { R.log('SYS', '이전 버전 예시 기록 ' + purged + '건 삭제'); R.store.save(); }
     R.logwin.render();
     R.term.boot();
-    R.fx.radar(true);
+    R.archiveRefresh();
     R.resetIdle();
     setTimeout(R.term.focus, 300);
   }
@@ -64,6 +73,10 @@
     var min = R.store.db && R.store.db.settings.autoLock;
     if (min > 0) idleT = setTimeout(function () { R.log('SEC', '자동 잠금 (' + min + '분 무입력)'); lock(); }, min * 60000);
   };
+  /* 마우스로 누를 때마다 '달칵' (터치는 제외) */
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'mouse') R.sound.click(false); }, { passive: true, capture: true });
+  document.addEventListener('pointerup', function (e) { if (e.pointerType === 'mouse') R.sound.click(true); }, { passive: true, capture: true });
+
   ['pointerdown', 'keydown', 'wheel'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!$('#app').hidden) R.resetIdle(); }, { passive: true });
   });
@@ -81,6 +94,7 @@
     $('#topEmblem').innerHTML = window.RSSEmblem.svg({ ink: '#050607' });
     $('#soundBtn').addEventListener('click', function () { R.sound.set(!R.sound.on); drawSound(); R.sound.key(); R.term.focus(); });
     $('#lockBtn').addEventListener('click', lock);
+    $('#archiveBtn').addEventListener('click', function () { R.go('files'); });
     $('#modX').addEventListener('click', closeModule);
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); lock(); }

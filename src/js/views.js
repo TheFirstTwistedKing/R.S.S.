@@ -80,19 +80,22 @@
     root.appendChild(wrap);
 
     function counts() {
-      var c = { all: db().entities.length };
+      var c = { all: db().entities.length + R.SEALED.length };
       R.TYPES.forEach(function (t) { c[t.id] = 0; });
-      db().entities.forEach(function (e) { c[e.type]++; });
+      db().entities.concat(R.SEALED).forEach(function (e) { c[e.type]++; });
       return c;
     }
     function filtered() {
       var q = F.q.trim().toLowerCase();
-      return db().entities.filter(function (e) {
+      var own = db().entities.filter(function (e) {
         if (F.type !== 'all' && e.type !== F.type) return false;
         if (!q) return true;
         return [e.name, e.alias, e.summary, e.body, e.status, R.code(e), e.tags.join(' '), e.fields.map(function (f) { return f.k + ' ' + f.v; }).join(' ')]
           .join(' ').toLowerCase().indexOf(q) >= 0;
       }).sort(function (a, b) { return b.updated - a.updated; });
+      // 봉인 문서는 제목·코드로만 검색됨 (내용은 공개되지 않음)
+      var sealed = R.SEALED.filter(function (s) { return (F.type === 'all' || F.type === s.type) && (!q || (s.name + ' ' + s.alias + ' ' + s.code).toLowerCase().indexOf(q) >= 0); });
+      return own.concat(sealed);
     }
 
     var search = h('input', { class: 'input', type: 'search', placeholder: '이름 · 코드 · 태그 · 내용 검색', value: F.q });
@@ -115,19 +118,35 @@
       list.innerHTML = '';
       var items = filtered();
       if (!items.length) {
-        var none = h('div', { style: { padding: '16px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' } },
-          db().entities.length ? '조건에 맞는 파일이 없습니다.' : '등록된 파일이 없습니다.');
-        if (!db().entities.length) none.appendChild(h('button', { class: 'btn', type: 'button', onclick: function () { R.sample(); F.sel = db().entities[0].id; draw(); R.toast('예시 기록을 생성했습니다'); } }, '예시 기록 불러오기'));
-        list.appendChild(none);
+        list.appendChild(h('div', { style: { padding: '16px', color: 'var(--muted)' } }, '조건에 맞는 문서가 없습니다.'));
         return;
       }
       items.forEach(function (e) {
-        list.appendChild(h('button', { class: 'item' + (F.sel === e.id ? ' on' : ''), type: 'button', onclick: function () { F.sel = e.id; F.edit = false; R.sound.nav(); draw(); } },
-          thumb(e),
+        list.appendChild(h('button', { class: 'item' + (e.sealed ? ' sealed' : '') + (F.sel === e.id ? ' on' : ''), type: 'button', onclick: function () { F.sel = e.id; F.edit = false; R.sound.nav(); draw(); } },
+          e.sealed ? h('div', { class: 'thumb' }, 'LOCK') : thumb(e),
           h('div', { class: 'item-t' }, e.name),
-          h('div', { class: 'item-c' }, clrBadge(e.clearance)),
-          h('div', { class: 'item-s' }, R.code(e) + (e.alias ? ' · ' + e.alias : ''))));
+          h('div', { class: 'item-c' }, e.sealed ? h('span', { class: 'clr sealed' }, 'SEALED') : clrBadge(e.clearance)),
+          h('div', { class: 'item-s' }, R.code(e) + (e.sealed ? ' · ' + e.status : (e.alias ? ' · ' + e.alias : '')))));
       });
+    }
+
+    /* 봉인 문서를 열면: 접근 불가 */
+    function deniedView(s) {
+      R.log('WARN', '봉인 문서 접근 시도 ' + s.code + ' · 거부');
+      R.sound.deny();
+      var box = h('article', { class: 'dossier denied view-in' },
+        h('button', { class: 'btn ghost back', type: 'button', onclick: function () { F.sel = null; draw(); } }, '< 목록'),
+        h('div', { class: 'deny-code' }, s.code + '  ·  ' + R.type(s.type).name),
+        h('h2', { class: 'deny-title' }, 'ACCESS DENIED'),
+        h('p', { class: 'deny-ko' }, '접근 불가'),
+        h('div', { class: 'deny-bar' }),
+        h('div', { class: 'facts' },
+          h('div', { class: 'k' }, '문서'), h('div', null, s.name),
+          h('div', { class: 'k' }, '상태'), h('div', null, '작성 미완료'),
+          h('div', { class: 'k' }, '열람 승인'), h('div', null, '없음'),
+          h('div', { class: 'k' }, '등급'), h('div', null, R.CLEAR[s.clearance].code)),
+        h('p', { class: 'hint', style: { marginTop: '16px' } }, '이 문서는 아직 완성되지 않았고 열람 승인을 얻지 못했습니다. 접근 시도는 시스템 로그에 기록됩니다.'));
+      return box;
     }
 
     function drawDetail() {
@@ -135,17 +154,17 @@
       wrap.classList.toggle('show-detail', !!(F.sel || F.edit));
       var back = h('button', { class: 'btn ghost back', type: 'button', onclick: function () { F.sel = null; F.edit = false; draw(); } }, '< 목록');
       if (F.edit) { detailPane.appendChild(editForm(F.edit === 'new' ? null : byId(F.sel), back)); return; }
+      var sealed = F.sel && R.SEALED.find(function (s) { return s.id === F.sel; });
+      if (sealed) { var dv = deniedView(sealed); detailPane.appendChild(dv); R.decodeTree(dv, '.deny-code, .deny-ko, .facts > div', 45); return; }
       var e = F.sel && byId(F.sel);
       if (!e) {
         F.sel = null;
         var doc = h('div', { class: 'dossier' });
         doc.appendChild(db().entities.length
-          ? h('div', { class: 'empty' }, h('h3', null, '파일을 선택하십시오'), h('p', null, '왼쪽 목록에서 열람할 기록을 고르거나 신규 파일을 작성합니다.'))
-          : h('div', { class: 'empty' }, h('h3', null, '보관소가 비어 있습니다'),
-              h('p', null, '인물 · 조직 · 장소 · 물품 · 세계관 설정을 파일로 등록하고 서로 연결해 관계도와 타임라인을 만듭니다.'),
-              h('div', { class: 'row', style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-                h('button', { class: 'btn primary', type: 'button', onclick: function () { F.edit = 'new'; draw(); } }, '+ 첫 파일 작성'),
-                h('button', { class: 'btn', type: 'button', onclick: function () { R.sample(); F.sel = db().entities[0].id; draw(); R.toast('예시 기록을 생성했습니다'); } }, '예시 기록 불러오기'))));
+          ? h('div', { class: 'empty' }, h('h3', null, '문서를 선택하십시오'), h('p', null, '왼쪽 목록에서 열람할 문서를 고르거나 신규 문서를 작성합니다.'))
+          : h('div', { class: 'empty' }, h('h3', null, '아카이브가 비어 있습니다'),
+              h('p', null, '인물 · 조직 · 장소 · 물품 · 세계관 문서를 등록하고 서로 연결합니다. 대화창에서 Control 에게 "인물 문서 만들어줘" 라고 말해도 됩니다.'),
+              h('button', { class: 'btn primary', type: 'button', onclick: function () { F.edit = 'new'; draw(); } }, '+ 첫 문서 작성')));
         detailPane.appendChild(doc);
         return;
       }
@@ -434,9 +453,8 @@
         h('button', { class: 'btn', type: 'button', onclick: importBackup }, '백업 가져오기'))));
 
     inner.appendChild(h('section', { class: 'panel' }, h('h3', null, '보관소'),
-      h('p', null, '예시 기록을 추가하거나 모든 기록을 삭제합니다.'),
+      h('p', null, '아카이브의 모든 문서 · 관계 · 사건을 삭제합니다. 봉인 문서와 접속 코드는 유지됩니다.'),
       h('div', { class: 'row' },
-        h('button', { class: 'btn', type: 'button', onclick: function () { R.sample(); R.go('security'); R.toast('예시 기록을 추가했습니다'); } }, '예시 기록 추가'),
         h('button', { class: 'btn danger', type: 'button', onclick: wipe }, '모든 기록 삭제'))));
 
     inner.appendChild(h('p', { class: 'hint' }, 'R.S.S. v' + R.version + ' · 글꼴: Pretendard, D2Coding, Galmuri(접속 코드 숫자) — SIL OFL 1.1'));
@@ -504,22 +522,4 @@
       var s = db().settings, lg = db().logs; R.store.db = R.emptyDB(); R.store.db.settings = s; R.store.db.logs = lg; R.log('WARN', '모든 기록 삭제'); R.go('security'); R.toast('삭제했습니다');
     });
   }
-
-  /* 예시 기록 (가상의 인물·조직) */
-  R.sample = function () {
-    var d = db(), mk = function (o) { var e = Object.assign({ id: R.uid(), no: ++d.seq, alias: '', status: '', summary: '', body: '', tags: [], fields: [], image: '', created: Date.now(), updated: Date.now() }, o); d.entities.push(e); return e; };
-    var a = mk({ type: 'character', name: '한서윤', alias: 'KESTREL', clearance: 2, status: '활동', summary: '북부 지부 현장 요원. 장거리 감시 전문.', tags: ['현장', '북부'],
-      fields: [{ k: '나이', v: '31' }, { k: '소속', v: '북부 지부 제3과' }, { k: '특기', v: '장거리 감시, 암호 해독' }],
-      body: '입국 기록상 3월 11일 귀환. 이후 ||항만 창고에서 미확인 인물과 접촉||한 정황이 있음.\n\n상세 동선은 관련 사건 참조.' });
-    var b = mk({ type: 'organization', name: '북부 지부', alias: 'NORTH DESK', clearance: 1, status: '해당 없음', summary: '국경 지역 정보 수집을 담당하는 지부.', tags: ['지부'] });
-    var c = mk({ type: 'character', name: '미상의 접촉자', alias: 'GREY', clearance: 3, status: '불명', summary: '신원 미확인. 항만 지역에서 반복 목격.', tags: ['추적'],
-      body: '확보된 사진 없음. ||외투 왼쪽 소매에 붉은 실 표식||.' });
-    var dPl = mk({ type: 'location', name: '항만 7번 창고', clearance: 1, status: '해당 없음', summary: '접촉이 이루어진 장소.', fields: [{ k: '위치', v: '남측 부두' }] });
-    var e = mk({ type: 'lore', name: '보안 등급 체계', clearance: 0, summary: '공개 · 대외비 · 기밀 · 극비 4단계.', body: '등급이 높을수록 열람 가능한 인원이 줄어든다. 극비 문서는 원본 반출이 금지된다.' });
-    d.links.push({ id: R.uid(), a: a.id, b: b.id, label: '소속' }, { id: R.uid(), a: a.id, b: c.id, label: '감시 대상' }, { id: R.uid(), a: c.id, b: dPl.id, label: '출몰' }, { id: R.uid(), a: b.id, b: dPl.id, label: '관할' });
-    d.events.push({ id: R.uid(), date: '2024-03-11', title: 'KESTREL 귀환', desc: '북부 국경 검문소 통과.', major: false, entities: [a.id] },
-      { id: R.uid(), date: '2024-03-14', title: '항만 7번 창고 접촉', desc: '미확인 인물과 약 4분간 접촉.', major: true, entities: [a.id, c.id, dPl.id] },
-      { id: R.uid(), date: '2024-03-20', title: '북부 지부 감시 작전 승인', desc: '', major: false, entities: [b.id, c.id] });
-    void e; R.log('DATA', '예시 기록 5건 생성'); touch();
-  };
 })();
