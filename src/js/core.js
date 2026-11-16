@@ -109,7 +109,7 @@
     },
     openBackup: function () {
       return new Promise(function (res) {
-        var i = document.createElement('input'); i.type = 'file'; i.accept = '.rssvault,.json';
+        var i = document.createElement('input'); i.type = 'file'; i.accept = '.rssvault,.rssbrain,.json';
         i.onchange = function () { var f = i.files[0]; if (!f) return res(null); f.text().then(res); };
         i.click();
       });
@@ -119,7 +119,7 @@
 
   /* ── 데이터 모델 ── */
   R.emptyDB = function () {
-    return { schema: 1, seq: 0, entities: [], links: [], events: [], logs: [], settings: { autoLock: 10 } };
+    return { schema: 1, seq: 0, entities: [], links: [], events: [], logs: [], settings: { autoLock: 10 }, brain: R.emptyBrain ? R.emptyBrain() : { v: 1, name: '', rules: [] } };
   };
   R.normalize = function (d) {
     if (!d || typeof d !== 'object' || !Array.isArray(d.entities)) throw new Error('형식이 올바르지 않습니다');
@@ -148,6 +148,7 @@
     db.logs = (Array.isArray(d.logs) ? d.logs : []).filter(function (x) { return x && x.t && x.m; }).slice(-LOG_MAX)
       .map(function (x) { return { t: +x.t, l: ['SEC', 'DATA', 'SYS', 'WARN'].indexOf(x.l) >= 0 ? x.l : 'SYS', m: String(x.m) }; });
     if (d.settings && typeof d.settings.autoLock === 'number') db.settings.autoLock = Math.max(0, Math.min(120, d.settings.autoLock));
+    if (R.normBrain) db.brain = R.normBrain(d.brain);   // Control 학습
     return db;
   };
 

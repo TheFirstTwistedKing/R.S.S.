@@ -1,7 +1,7 @@
 {
   "name": "rss-archive",
   "productName": "R.S.S.",
-  "version": "3.9.0",
+  "version": "4.0.0",
   "description": "R.S.S. 정보국 기밀 기록 관리 앱",
   "main": "main.js",
   "author": "R.S.S.",
