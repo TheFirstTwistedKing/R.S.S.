@@ -75,7 +75,12 @@ body.electron .dragbar { pointer-events: auto; }
 @keyframes sweep-down { from { transform: translateY(0); } to { transform: translateY(130vh); } }
 @keyframes noise-shift { 0% { background-position: 0 0, 0 0; } 20% { background-position: -47px 31px, 0 0; } 40% { background-position: 61px -23px, 0 0; } 60% { background-position: -19px -57px, 0 0; } 80% { background-position: 37px 43px, 0 0; } 100% { background-position: 0 0, 0 0; } }
 @media (prefers-reduced-motion: reduce) { .fx-sweep { display: none; } }
-.fx-vignette { position: fixed; inset: 0; z-index: 79; pointer-events: none; background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 60%, rgba(0, 0, 0, .55)); }
+/* 화면 가장자리: 주황빛 발광 (가운데는 어둡게 두어 글자가 잘 보이게) */
+.fx-vignette {
+  position: fixed; inset: 0; z-index: 79; pointer-events: none;
+  background: radial-gradient(ellipse 125% 110% at 50% 50%, transparent 56%, rgba(255, 130, 24, .09) 76%, rgba(255, 140, 30, .24) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 170, 70, .6), inset 0 0 22px rgba(255, 140, 30, .42), inset 0 0 110px rgba(255, 120, 20, .2);
+}
 
 /* ── 인트로 / 잠금 ── */
 .intro {
