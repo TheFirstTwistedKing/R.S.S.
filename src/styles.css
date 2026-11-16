@@ -64,14 +64,14 @@ body.electron .dragbar { pointer-events: auto; }
 /* 위에서 아래로 내려오는 스캔라인: 노이즈가 섞인 띠. 배경과 거의 같은 색이라 눈이 아프지 않음 */
 .fx-sweep {
   position: fixed; left: 0; right: 0; top: -26vh; height: 26vh; z-index: 81; pointer-events: none;
-  background-image: var(--noise-tex, none), linear-gradient(to bottom, rgba(255, 176, 32, 0), rgba(255, 176, 32, .03) 70%, rgba(255, 200, 120, .06) 96%, rgba(255, 176, 32, 0));
+  background-image: var(--noise-tex, none), linear-gradient(to bottom, rgba(255, 176, 32, 0), rgba(255, 170, 40, .07) 55%, rgba(255, 190, 90, .14) 90%, rgba(255, 215, 150, .2) 97%, rgba(255, 176, 32, 0));
   background-size: 180px 180px, 100% 100%;
   -webkit-mask: linear-gradient(to bottom, transparent, #000 55%, #000 92%, transparent); mask: linear-gradient(to bottom, transparent, #000 55%, #000 92%, transparent);
-  opacity: .38; mix-blend-mode: screen;
+  opacity: .85; mix-blend-mode: screen;
   animation: sweep-down 8s linear infinite, noise-shift .45s steps(5) infinite;
   will-change: transform;
 }
-.fx-sweep::after { content: ''; position: absolute; left: 0; right: 0; bottom: 3%; height: 1px; background: rgba(255, 190, 90, .1); }
+.fx-sweep::after { content: ''; position: absolute; left: 0; right: 0; bottom: 3%; height: 2px; background: rgba(255, 200, 110, .32); box-shadow: 0 0 12px rgba(255, 170, 60, .35); }
 @keyframes sweep-down { from { transform: translateY(0); } to { transform: translateY(130vh); } }
 @keyframes noise-shift { 0% { background-position: 0 0, 0 0; } 20% { background-position: -47px 31px, 0 0; } 40% { background-position: 61px -23px, 0 0; } 60% { background-position: -19px -57px, 0 0; } 80% { background-position: 37px 43px, 0 0; } 100% { background-position: 0 0, 0 0; } }
 @media (prefers-reduced-motion: reduce) { .fx-sweep { display: none; } }

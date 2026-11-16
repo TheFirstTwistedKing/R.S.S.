@@ -120,7 +120,7 @@
       for (var i = 0; i < id.data.length; i += 4) {
         var v = Math.random();
         id.data[i] = 200 * v; id.data[i + 1] = 150 * v; id.data[i + 2] = 70 * v;
-        id.data[i + 3] = v > 0.55 ? Math.round(60 * v) : 0;
+        id.data[i + 3] = v > 0.45 ? Math.round(120 * v) : 0;
       }
       g.putImageData(id, 0, 0);
       document.documentElement.style.setProperty('--noise-tex', 'url(' + c.toDataURL('image/png') + ')');
