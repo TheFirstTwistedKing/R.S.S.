@@ -4,12 +4,16 @@
 
 ## 다운로드
 
-[Releases](../../releases/latest) 에서 받습니다.
+항상 최신 버전으로 연결되는 링크입니다. (저장소 이름 끝의 점 `.` 까지 주소에 포함되어야 열립니다)
+
+- 설치형: https://github.com/TheFirstTwistedKing/R.S.S./releases/latest/download/RSS-Setup.exe
+- 포터블: https://github.com/TheFirstTwistedKing/R.S.S./releases/latest/download/RSS-Portable.exe
+- 릴리즈 페이지: https://github.com/TheFirstTwistedKing/R.S.S./releases/latest
 
 | 파일 | 설명 |
 |---|---|
-| `RSS-Setup-x.y.z.exe` | 설치형. 바탕화면·시작 메뉴에 R.S.S. 아이콘 생성 |
-| `RSS-Portable-x.y.z.exe` | 설치 없이 더블클릭으로 실행 |
+| `RSS-Setup.exe` | 설치형. 바탕화면·시작 메뉴에 R.S.S. 아이콘 생성 |
+| `RSS-Portable.exe` | 설치 없이 더블클릭으로 실행 |
 
 코드 서명 인증서가 없어서 처음 실행할 때 SmartScreen 경고가 나올 수 있습니다 → **추가 정보 → 실행**.
 

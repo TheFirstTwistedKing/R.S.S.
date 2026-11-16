@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '2.1.0';
+  R.version = '2.1.1';
   var MODS = { files: ['MOD-01', '파일 열람 · 편집'], graph: ['MOD-02', '관계도'], timeline: ['MOD-03', '타임라인'], security: ['MOD-04', '보안 · 백업'] };
   var destroy = null;
 
