@@ -45,15 +45,19 @@
     lock: '보관소를 잠급니다. 다시 뵙겠습니다.',
     backup: { out: '암호화 백업 파일을 저장합니다. 저장 위치를 골라 주십시오.', in: '백업 파일을 불러옵니다.', code: '접속 코드 변경 창을 엽니다.' },
     lang: { set: '언어를 한국어로 바꿨습니다.', apex: '출력 언어: 한국어.' },
-    // 캠 (캠 코드로 감시 화면 호출)
+    // CCTV 감시실
     sim: {
-      need: '어느 캠을 띄울까요? 캠 코드를 입력해 주십시오. 등록된 캠: {목록}',
       unknown: '"{q}" 은(는) 등록된 캠 코드가 아닙니다. 등록된 캠: {목록}',
+      gridToApex: 'Apex, 감시실 전 회선 연결.',
+      gridAck: '카메라 {n}대 조회. 실시간 {l} · 회선 단절 {o}.',
+      grid: ['CCTV 감시실을 엽니다. 화면을 누르면 그 카메라만 크게 볼 수 있습니다.', '감시실 화면을 띄웠습니다. 카메라를 누르면 크게, 다시 누르면 전체로 돌아갑니다.'],
       toApex: ['Apex, 캠 {코드} 연결.', 'Apex, {코드} 감시 화면 호출.'],
-      ack: '캠 {코드} 링크 수립. 순찰 기체 MK-03 머리 카메라 영상 송출.',
-      user: ['캠 {코드} 을(를) 띄웠습니다. 순찰 로봇의 시점입니다. (F4 전체화면)', '캠 {코드} 감시 화면을 오른쪽 위에 열었습니다. 순찰 로봇 카메라로 녹화 중입니다. (F4 전체화면)'],
-      closed: '캠을 종료했습니다.',
-      notOpen: '켜져 있는 캠이 없습니다.'
+      ack: '캠 {코드} 링크 수립. 영상 송출.',
+      offAck: '캠 {코드} 회선 단절. 신호 없음.',
+      user: ['캠 {코드} {이름} 화면을 크게 띄웠습니다.', '캠 {코드} 입니다. {이름} 화면입니다.'],
+      off: '캠 {코드} {이름} 은(는) 회선이 끊겨 있습니다. 신호가 없습니다.',
+      closed: 'CCTV 감시실을 닫았습니다.',
+      notOpen: '열려 있는 CCTV 감시실이 없습니다.'
     },
     // Control 학습
     learn: {
@@ -108,9 +112,10 @@
       { t: '도움말 · help        명령어 목록' },
       { t: '아카이브 · archive    문서 아카이브 창 열기' },
       { t: 'msg                  메신저 창 열기' },
-      { t: '<캠 코드>            감시 화면 열기 (예: A-001)' },
-      { t: '캠 종료              감시 화면 닫기' },
-      { t: 'F11 · F4             완전 전체화면 · 캠 전체화면' },
+      { t: 'CCTV · 캠            CCTV 감시실 열기 (카메라 9대)' },
+      { t: '<캠 코드>            그 카메라를 크게 (예: A-001 · A-002 · B-001)' },
+      { t: '캠 종료              감시실 닫기' },
+      { t: 'F11                  완전 전체화면' },
       { t: 'Eng / 한글           표시 언어 바꾸기' },
       { t: '잠금 · lock          보관소 잠그기' },
       { t: '관계도 · 타임라인 · 보안   각 창 열기 (열람)' },
@@ -174,13 +179,17 @@
     backup: { out: 'Saving an encrypted backup. Choose a location.', in: 'Loading a backup file.', code: 'Opening the access code dialog.' },
     lang: { set: 'Language switched to English.', apex: 'Output language: English.' },
     sim: {
-      need: 'Which camera should I open? Type a camera code. Registered: {목록}',
       unknown: '"{q}" is not a registered camera code. Registered: {목록}',
+      gridToApex: 'Apex, link every monitor line.',
+      gridAck: '{n} cameras. Live {l} · offline {o}.',
+      grid: 'Opening the CCTV room. Click a screen to enlarge it.',
       toApex: ['Apex, link camera {코드}.', 'Apex, call up monitor {코드}.'],
-      ack: 'Camera {코드} link established. Patrol unit MK-03 head camera on air.',
-      user: ['Camera {코드} is up. You are seeing through the patrol robot. (F4 for full screen)', 'Opened camera {코드} in the top-right, recording from the patrol robot. (F4 for full screen)'],
-      closed: 'Camera closed.',
-      notOpen: 'No camera is open.'
+      ack: 'Camera {코드} linked. On air.',
+      offAck: 'Camera {코드} line cut. No signal.',
+      user: 'Camera {코드} {이름}, enlarged.',
+      off: 'Camera {코드} {이름} has a cut line. No signal.',
+      closed: 'CCTV room closed.',
+      notOpen: 'The CCTV room is not open.'
     },
     learn: {
       toApex: 'Apex, register rule: "{say}" → "{act}".',
@@ -233,9 +242,10 @@
       { t: 'help · 도움말        list commands' },
       { t: 'archive · 아카이브    open the document archive' },
       { t: 'msg                  open the messenger' },
-      { t: '<camera code>        open a monitor (e.g. A-001)' },
-      { t: 'cam close            close the monitor' },
-      { t: 'F11 · F4             full screen · camera full screen' },
+      { t: 'CCTV · cam           open the CCTV room (9 cameras)' },
+      { t: '<camera code>        enlarge that camera (e.g. A-001)' },
+      { t: 'cam close            close the CCTV room' },
+      { t: 'F11                  full screen' },
       { t: 'Eng / 한글           switch language' },
       { t: 'lock · 잠금          seal the vault' },
       { t: 'graph · timeline · security   open those windows' },

@@ -1,8 +1,7 @@
-/* 감시 영상(feed=1) HUD: 방위 눈금 · 타임코드 · 속도 · 좌표 · 고도 */
+/* CCTV A-001(순찰 로봇)을 크게 볼 때 HUD: 방위 눈금 · 타임코드 · 속도 · 좌표 · 고도 */
 (function () {
   'use strict';
-  if (!/[?&]feed=1/.test(location.search)) return;
-  document.body.classList.add('feed');
+  if (!/[?&]cctv=1/.test(location.search)) return;
   var q = function (s) { return document.querySelector(s); };
   var tapeIn = q('.tape-in'), hdg = q('.hdg'), tc = q('.tc'), spd = q('.spd'), grid = q('.grid'), elv = q('.elv');
   var STEP = 40;                                  // 15° 마다 눈금, 눈금 사이 40px
