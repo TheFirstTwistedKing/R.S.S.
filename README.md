@@ -63,7 +63,7 @@ Control 은 사용자가 가르친 말을 기억합니다. (인터넷 · 외부 
 
 ## R.S.S. Mobile (휴대폰용 시뮬레이션 웹앱)
 
-주소: **https://thefirsttwistedking.github.io/R.S.S./**
+주소: **https://thefirsttwistedking.github.io/R.S.S./mobile/** (`https://thefirsttwistedking.github.io/R.S.S./` 로 들어가도 이동)
 휴대폰 브라우저로 열고 **홈 화면에 추가**(안드로이드 크롬: 메뉴 → 앱 설치 / 아이폰 사파리: 공유 → 홈 화면에 추가) 하면 앱처럼 설치됩니다. 한 번 열면 인터넷 없이도 열립니다.
 
 - 접속: R.S.S. 처럼 숫자 4~8자리 접속 코드 (처음엔 정하고, 다음부터 입력) · 앱을 열 때마다 잠금 화면부터
