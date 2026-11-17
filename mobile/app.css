@@ -220,3 +220,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .iv.res .iv-amt.up { color: var(--acc); }
 .lg.inv b { color: var(--red); } .lg.invr b { color: var(--acc); }
 @media (max-width: 360px) { .tab span { font-size: 11px; } .pf-g { grid-template-columns: 1fr 1fr; } }
+.iv-left.down { color: var(--red); }
