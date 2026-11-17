@@ -160,24 +160,24 @@
       puffGeo.attributes.position.needsUpdate = true;
 
       root.updateMatrixWorld(true);
+      var CAM = S.fpvCam || S.camera;
       if (FEED && !TP) {
         // 머리 카메라: 머리 뼈 위치에서 조금 앞, 걷는 흔들림 + 발 디딜 때 짧은 충격
         bones.Head.getWorldPosition(headW);
         var dir = yaw + look * 0.85;
         fwd.set(Math.sin(dir), 0, Math.cos(dir));
-        S.camera.position.copy(headW).addScaledVector(fwd, 0.25);
-        S.camera.position.y += 0.12 - shake * shake * 0.055;
+        CAM.position.copy(headW).addScaledVector(fwd, 0.25);
+        CAM.position.y += 0.12 - shake * shake * 0.055;
         // 카메라는 -Z 를 보므로 방향에 π 를 더함 (YXZ: 좌우 → 위아래 → 기울기)
-        S.camera.rotation.set(pitch + shake * shake * 0.02, dir + Math.PI, Math.sin(phase) * 0.012, 'YXZ');
+        CAM.rotation.set(pitch + shake * shake * 0.02, dir + Math.PI, Math.sin(phase) * 0.012, 'YXZ');
       } else if (TP) {
         var back = new T.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-        S.camera.position.set(pos.x, gy + 3.2, pos.z).addScaledVector(back, 6);
-        S.camera.lookAt(pos.x, gy + 1.4, pos.z);
+        CAM.position.set(pos.x, gy + 3.2, pos.z).addScaledVector(back, 6);
+        CAM.lookAt(pos.x, gy + 1.4, pos.z);
       }
       // 감시 화면 정보 (방위 · 속도 · 좌표)
       if (window.__feedHud) window.__feedHud({ heading: ((dir2deg(yaw + look * 0.85)) + 360) % 360, speed: SPEED * 3.6, x: pos.x, z: pos.z, alt: gy });
     });
     function dir2deg(r) { return Math.round(r * 180 / Math.PI); }
-    if (window.parent !== window) window.parent.postMessage({ rss: 'feed-ready' }, '*');
   }
 })();

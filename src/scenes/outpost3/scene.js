@@ -7,11 +7,11 @@
   'use strict';
   var T = window.THREE;
   var mobile = Math.min(innerWidth, innerHeight) < 700;
-  // feed=1: 시뮬레이션 창 안에서 순찰 로봇의 1인칭 감시 영상으로 쓰임 (조작 없음, 잡음·주사선 추가)
-  var FEED = /[?&]feed=1/.test(location.search);
+  // cctv=1: 앱의 CCTV 감시실 창 안에서 여러 카메라 화면을 그림 (조작 없음, 잡음·주사선 추가)
+  var CCTV = /[?&]cctv=1/.test(location.search), FEED = CCTV;
 
   /* ───────── 렌더러 · 장면 · 카메라 ───────── */
-  var renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  var renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: CCTV });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.6));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputEncoding = T.LinearEncoding;   // 마지막 색 보정 패스에서 sRGB 로 변환
@@ -19,7 +19,7 @@
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.92;
-  document.getElementById('stage').appendChild(renderer.domElement);
+  if (!CCTV) document.getElementById('stage').appendChild(renderer.domElement);   // CCTV: 화면에 직접 그리지 않고 칸마다 복사
 
   var scene = new T.Scene();
   // 흐린 하늘: 위는 회청색 → 지평선은 거의 흰색, 붓으로 그은 듯한 납작한 구름층
@@ -519,7 +519,7 @@
   var composer = new T.EffectComposer(renderer, rt);
   // 외곽선 효과로 장면을 그리는 첫 패스 (OutlineEffect 를 그대로 사용)
   var outlined = new T.Pass(); outlined.needsSwap = false;
-  outlined.render = function (r, w, read) { r.setRenderTarget(read); r.setClearColor(0xdfe6ef, 1); r.clear(); effect.render(scene, camera); };
+  outlined.render = function (r, w, read) { r.setRenderTarget(read); r.setClearColor(0xdfe6ef, 1); r.clear(); effect.render(scene, view); };
   composer.addPass(outlined);
   var bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.92);
   composer.addPass(bloom);
@@ -554,7 +554,7 @@
   composer.addPass(grade);
 
   /* ───────── 조작: 끌어서 회전 · 휠/핀치 확대, 가만히 두면 천천히 흔들림 ───────── */
-  var frameHooks = [];
+  var frameHooks = [], view = camera;
   var controls = new T.OrbitControls(camera, renderer.domElement);
   controls.enabled = !FEED;
   controls.target.copy(HOME.target);
@@ -587,18 +587,29 @@
       if (P[i * 3 + 1] < 0 || P[i * 3] > 80) { P[i * 3] = -80 + Math.random() * 20; P[i * 3 + 1] = 2 + Math.random() * 43; }
     }
     flakes.p.geometry.attributes.position.needsUpdate = true;
-    SUNVIEW.value.copy(sun.position).normalize().transformDirection(camera.matrixWorldInverse);
     for (var mi = 0; mi < mists.length; mi++) { var ms = mists[mi]; ms.m.position.x = ms.x0 + Math.sin(t * 0.03 * ms.sp + mi) * 6; }
-    composer.render();
+    if (CCTV) { if (window.__cctvRender) window.__cctvRender(dt, t); }
+    else renderView(camera);
     frames++; fpsT += dt;
     if (fpsT >= 1 && fpsEl) { fpsEl.textContent = Math.round(frames / fpsT) + ' FPS'; frames = 0; fpsT = 0; }
   }
   loop();
 
+  /* 카메라 하나로 한 장면 그리기 (CCTV 는 카메라마다 이것을 불러 칸에 복사) */
+  function renderView(cam) {
+    view = cam;
+    SUNVIEW.value.copy(sun.position).normalize().transformDirection(cam.matrixWorldInverse);
+    composer.render();
+  }
+  function setRenderSize(w, h) {
+    renderer.setPixelRatio(1); renderer.setSize(w, h, false);
+    composer.setSize(w, h); bloom.setSize(w, h); grade.uniforms.res.value.set(w, h);
+  }
   addEventListener('resize', function () {
+    if (CCTV) return;
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
     composer.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight); grade.uniforms.res.value.set(innerWidth, innerHeight);
   });
-  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height, bloom: bloom, sun: sun, M: M, gradMap: gradMap, enhance: enhance, FEED: FEED, frameHooks: frameHooks, SOFTDOT: SOFTDOT };
+  window.__scene = { scene: scene, camera: camera, controls: controls, renderer: renderer, height: height, bloom: bloom, sun: sun, M: M, gradMap: gradMap, enhance: enhance, FEED: FEED, CCTV: CCTV, frameHooks: frameHooks, SOFTDOT: SOFTDOT, renderView: renderView, setRenderSize: setRenderSize, grade: grade, HOME: HOME };
 })();

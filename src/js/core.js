@@ -340,7 +340,7 @@
     /* 순찰 로봇 발소리 (감시 영상의 마이크로 들리는 소리, 코드로 합성)
        - 쿵: 무거운 금속 발이 땅을 디디는 저음  - 뽀득: 눈이 눌리는 잡음 알갱이 몇 개
        - 철컥: 발목 관절의 짧은 금속음  - 위잉: 다음 다리를 드는 서보 모터 소리 (작게) */
-    mechStep: function (side) {
+    mechStep: function (side, vol) {
       if (!this.on) return;
       try {
         ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
@@ -349,7 +349,7 @@
         if (!master) return;
         var t = ctx.currentTime + 0.005, v = 0.92 + Math.random() * 0.16, pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
         var out = ctx.createBiquadFilter(); out.type = 'lowpass'; out.frequency.value = 5200;   // 카메라 마이크 느낌으로 윗소리를 조금 깎음
-        var bus = ctx.createGain(); bus.gain.value = 0.85;
+        var bus = ctx.createGain(); bus.gain.value = 0.85 * (vol == null ? 1 : vol);
         bus.connect(out); if (pan) { pan.pan.value = (side || 0) * 0.25; out.connect(pan); pan.connect(master); } else out.connect(master);
         // 쿵
         var o = ctx.createOscillator(), og = ctx.createGain();

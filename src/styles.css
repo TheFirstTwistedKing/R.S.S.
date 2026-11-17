@@ -594,99 +594,28 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   .logbar .lg { width: 230px; }
 }
 
-/* ══ 시뮬레이션 창: 오른쪽 위 1/4 크기 (가로 50% × 세로 50%) ══ */
-.sim {
-  --cc: var(--line-3);
-  position: fixed; z-index: 45; top: calc(var(--bn) + 10px); right: 10px;
-  width: calc(50vw - 15px); height: calc(50vh - 15px);
-  display: flex; flex-direction: column; min-width: 300px; min-height: 200px;
-  background: var(--cl) top right / 16px 16px no-repeat, var(--cl) bottom left / 16px 16px no-repeat, #070809;
-  border: 1px solid var(--line-3);
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6);
-  transition: top .35s cubic-bezier(.2, .8, .2, 1), right .35s cubic-bezier(.2, .8, .2, 1), width .35s cubic-bezier(.2, .8, .2, 1), height .35s cubic-bezier(.2, .8, .2, 1);
-}
-.sim { --cl: linear-gradient(to top right, transparent calc(50% - 1px), var(--cc) calc(50% - 1px) 50%, transparent 50%); }
-.sim.full { top: var(--bn); right: 0; width: 100vw; height: calc(100vh - var(--bn)); clip-path: none; }
-.sim.opening { animation: rain-reveal .75s cubic-bezier(.3, .7, .2, 1) both; }
-.sim-h { gap: var(--s2); }
-.sim-h .win-t { font-family: var(--f-ui); letter-spacing: .02em; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sim-h .win-s { letter-spacing: .04em; }
-.sim-btn { flex: none; }
-.sim-feed { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #050505; }
-/* 화면이 켜지는 순간: 가운데 가로선 → 화면 전체 */
-.sim-feed > * { transform: scaleY(.004); opacity: 0; transform-origin: 50% 50%; }
-.sim.sim-live .sim-feed > * { animation: sim-on .6s cubic-bezier(.16, .84, .3, 1) forwards; }
-@keyframes sim-on {
-  0% { transform: scale(.2, .004); opacity: 1; filter: brightness(4); }
-  35% { transform: scale(1, .004); opacity: 1; filter: brightness(4); }
-  70% { transform: scale(1, 1.02); filter: brightness(1.6); }
-  100% { transform: scale(1, 1); opacity: 1; filter: none; }
-}
-.sim-noise { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: .55; }
-.sim-view { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; background: #050505; }
-.sim.sim-feed-on .sim-rec { background: #e0412b; animation: rec-pulse 2s ease-in-out infinite; }
+/* ══ CCTV 감시실 (아카이브처럼 따로 뜨는 창) ══ */
+.cctv-mod { grid-template-columns: 300px 1fr; }
+.cc-pane { overflow: hidden; background: #050505; }
+.cc-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #050505; }
+.cc-info { display: flex; gap: var(--s4); font: 11px/1 var(--f-mono); letter-spacing: .12em; color: var(--muted); }
+.cc-info b { color: var(--accent); font-weight: 700; margin-left: 4px; }
+.cctv-mod .list-tools .btn:disabled { opacity: .4; cursor: default; }
+.cc-thumb span { display: flex; align-items: center; gap: 4px; color: var(--text); font-size: 9px; letter-spacing: .1em; }
+.cc-thumb span i { width: 6px; height: 6px; border-radius: 50%; background: #e0412b; animation: rec-pulse 2s ease-in-out infinite; }
 @keyframes rec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
-.sim-scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, .35) 2px 4px); }
-.sim-scan::after { content: ''; position: absolute; left: 0; right: 0; height: 30%; top: -30%; background: linear-gradient(to bottom, transparent, rgba(255, 190, 90, .07), transparent); animation: sim-roll 5s linear infinite; }
-@keyframes sim-roll { to { transform: translateY(440%); } }
-.sim-hud { position: absolute; inset: 0; pointer-events: none; font: 11px/1 var(--f-mono); letter-spacing: .12em; color: rgba(243, 232, 210, .75); }
-.sim-hud > span { position: absolute; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.sim-hud .h-tl { top: 16px; left: 18px; }
-.sim-hud .h-tr { top: 16px; right: 18px; }
-.sim-hud .h-bl { bottom: 16px; left: 18px; letter-spacing: .04em; font-family: var(--f-ui); font-size: 12px; }
-.sim-hud .h-br { bottom: 16px; right: 18px; color: var(--accent); }
-.sim-rec { width: 8px; height: 8px; border-radius: 50%; background: #5a5a5a; }
-.sim-corners i { position: absolute; width: 22px; height: 22px; border: 0 solid rgba(255, 176, 32, .55); }
-.sim-corners i:nth-child(1) { top: 8px; left: 8px; border-left-width: 2px; border-top-width: 2px; }
-.sim-corners i:nth-child(2) { top: 8px; right: 8px; border-right-width: 2px; border-top-width: 2px; }
-.sim-corners i:nth-child(3) { bottom: 8px; left: 8px; border-left-width: 2px; border-bottom-width: 2px; }
-.sim-corners i:nth-child(4) { bottom: 8px; right: 8px; border-right-width: 2px; border-bottom-width: 2px; }
-.sim-nosig { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
-.sim-nosig b {
-  font: 800 clamp(28px, 5vw, 64px)/1 var(--f-ui); letter-spacing: .3em; padding: .3em .45em .3em .75em;
-  color: var(--text); background: rgba(5, 5, 5, .72); border: 1px solid rgba(243, 232, 210, .5);
-  text-shadow: 0 0 14px rgba(255, 190, 90, .35);
-  animation: nosig-pulse 2.4s ease-in-out infinite;
-}
-.sim.full .sim-nosig b { font-size: clamp(40px, 7vw, 110px); }
-@keyframes nosig-pulse { 50% { opacity: .62; } }
-.sim-nosig span { display: flex; align-items: baseline; gap: 6px; font: 12px/1 var(--f-mono); letter-spacing: .14em; color: rgba(243, 232, 210, .7); background: rgba(5, 5, 5, .6); padding: 6px 10px; }
+.cc-thumb.off { color: var(--muted); }
+.cctv-mod .item-t { font-family: var(--f-mono); font-size: 13px; letter-spacing: .02em; white-space: pre; }
+.cc-wait { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #050505; transition: opacity .6s ease; pointer-events: none; }
+.cc-wait b { font: 700 clamp(28px, 5vw, 64px)/1 var(--f-ui); letter-spacing: .3em; color: var(--text); }
+.cc-wait span { display: flex; align-items: baseline; gap: 6px; font: 12px/1 var(--f-mono); letter-spacing: .14em; color: var(--muted); }
+.cc-wait.gone { opacity: 0; }
 .sim-dots { display: inline-flex; gap: 3px; font-style: normal; }
 .sim-dots i { width: 4px; height: 4px; background: var(--accent); opacity: .25; animation: dot 1.2s ease-in-out infinite; }
 .sim-dots i:nth-child(2) { animation-delay: .2s; }
 .sim-dots i:nth-child(3) { animation-delay: .4s; }
 @media (max-width: 760px) {
-  .sim { left: 10px; right: 10px; width: auto; height: 40vh; min-width: 0; }
-  .sim.full { left: 0; right: 0; height: calc(100vh - var(--bn)); }
-  .sim-h .win-s { display: none; }
-  .sim-hud .h-bl { display: none; }
-}
-@media (prefers-reduced-motion: reduce) { .sim-feed > * { transform: none; opacity: 1; } }
-
-/* F11 완전 전체화면일 때는 위쪽 창 버튼 자리를 비우지 않음 */
-body.electron.fs { --bn: 0px; }
-body.fs .dragbar { display: none; }
-
-/* ══ 떠 있는 창 공통: 이동 · 크기 조절 손잡이 ══ */
-.fwin .win-h { cursor: move; user-select: none; touch-action: none; }
-.fwin .win-h button { cursor: pointer; }
-.fwin.dragging { transition: none !important; }
-body.win-dragging iframe { pointer-events: none !important; }
-body.win-dragging { cursor: default; user-select: none; }
-.rz { position: absolute; z-index: 5; display: block; }
-.rz-n, .rz-s { left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
-.rz-n { top: 0; } .rz-s { bottom: 0; }
-.rz-e, .rz-w { top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
-.rz-e { right: 0; } .rz-w { left: 0; }
-.rz-ne, .rz-nw, .rz-se, .rz-sw { width: 18px; height: 18px; }
-.rz-nw { top: 0; left: 0; cursor: nwse-resize; } .rz-se { bottom: 0; right: 0; cursor: nwse-resize; }
-.rz-ne { top: 4px; right: 4px; cursor: nesw-resize; } .rz-sw { bottom: 4px; left: 4px; cursor: nesw-resize; }   /* 잘린 모서리 안쪽 */
-.fwin.full .rz { display: none; }
-.fwin.full .win-h { cursor: default; }
-.sim.full { left: 0 !important; top: var(--bn) !important; right: auto !important; width: 100vw !important; height: calc(100vh - var(--bn)) !important; }
-
-@media (max-width: 700px) {
-  .rz { display: none; }
-  .fwin .win-h { cursor: default; }
+  .cctv-mod { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .cctv-mod .list-pane { display: flex; max-height: 34vh; border-right: 0; border-bottom: 1px solid var(--line-2); }
+  .cctv-mod .detail-pane { display: block; }
 }

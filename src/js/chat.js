@@ -268,22 +268,27 @@
     C(Lx().ro.user);
   }
 
-  /* 캠: 캠 코드를 입력하면 감시 화면을 띄움 (예: A-001 · 캠 A-001), "캠 종료" 로 닫음 */
+  /* CCTV: "CCTV" · "캠" 이면 감시실(격자), 캠 코드(A-001 등)면 그 카메라를 크게. "캠 종료" 로 닫음 */
   function camera(t) {
     if (/(종료|꺼|끄|닫|중지|close|off|stop|end)/i.test(t)) {
-      if (!R.sim.isOpen()) return C(Lx().sim.notOpen);
-      R.sim.close(true); return C(Lx().sim.closed);
+      if (!R.cctv.isOpen()) return C(Lx().sim.notOpen);
+      R.closeModule(); return C(Lx().sim.closed);
     }
-    var codes = R.CAMS.map(function (p) { return p.code; }).join(' / ');
     var p = R.camFind(t);
+    var q = (String(t).match(/\b[a-z]\s*-?\s*\d{3}\b/i) || [''])[0].trim();
+    if (!p && q) return C(fmt(Lx().sim.unknown, { q: q, 목록: R.CAMS.map(function (c) { return c.code; }).join(' / ') }));
+    var live = R.CAMS.filter(function (c) { return !c.off; }).length;
     if (!p) {
-      var q = (String(t).match(/\b[a-z]\s*-?\s*\d{3}\b/i) || [''])[0].trim();
-      return C(fmt(q ? Lx().sim.unknown : Lx().sim.need, { q: q, 목록: codes }));
+      CA(Lx().sim.gridToApex, { wait: 240 });
+      A(fmt(Lx().sim.gridAck, { n: R.CAMS.length, l: live, o: R.CAMS.length - live }), { pre: R.CAMS.map(function (c) { return { t: fit(c.code, 8) + fit(c.name, 22) + (c.off ? 'OFFLINE' : 'LIVE'), c: c.off ? 'dim' : '' }; }) });
+      C(Lx().sim.grid);
+      chain = chain.then(function () { if (R.cctv.isOpen()) R.cctv.focus(null); else R.go('cctv'); });
+      return;
     }
     CA(fmt(Lx().sim.toApex, { 코드: p.code }), { wait: 240 });
-    A(fmt(Lx().sim.ack, { 코드: p.code }), { pre: [{ t: 'CAM ' + p.code, c: 'hi' }, { t: fit('UNIT', 10) + p.unit }, { t: fit('LINK', 10) + (p.feed ? R.T('수립 · 순찰 로봇 카메라 영상', 'established · patrol robot camera') : R.T('수립 · 영상 신호 미수신', 'established · no video signal')) }] });
-    C(fmt(Lx().sim.user, { 코드: p.code }));
-    chain = chain.then(function () { R.sim.open(p); });
+    if (p.off) { A(fmt(Lx().sim.offAck, { 코드: p.code })); C(fmt(Lx().sim.off, { 코드: p.code, 이름: p.name })); }
+    else { A(fmt(Lx().sim.ack, { 코드: p.code })); C(fmt(Lx().sim.user, { 코드: p.code, 이름: p.name })); }
+    chain = chain.then(function () { if (R.cctv.isOpen()) R.cctv.focus(p.code); else R.go('cctv', { cam: p.code }); });
   }
 
   /* ───────── 학습 (Control 이 가르친 말을 기억) ───────── */
@@ -433,8 +438,8 @@
     if (/^(msg|메신저|messenger)$/.test(cmd)) { C(Lx().module.msg, { wait: 200 }); chain = chain.then(function () { R.go('msg'); }); return; }
     if (/^(아카이브|archive)(\s*(켜|열어|보여|on|open).*)?$/.test(cmd) || /아카이브\s*(좀\s*)?(켜|열어|보여)|open\s+(the\s+)?archive/i.test(t)) { C(Lx().module.files, { wait: 200 }); chain = chain.then(function () { R.go('files'); }); return; }
     if (/^(잠금|lock|잠가|잠가줘)$/.test(cmd)) return doLock();
-    // 캠: 캠 코드만 입력하거나 "캠 A-001" (닫기: 캠 종료)
-    if (/^\s*[a-z]\s*-?\s*\d{3}\s*$/i.test(t) || /(^|\s)(캠|카메라|cam|camera)(\s|$)/i.test(t) || /^캠/.test(t.trim())) return camera(t);
+    // CCTV: "CCTV" · "캠" · "감시실" 또는 캠 코드(A-001 · 캠 A-001), 닫기: 캠 종료
+    if (/^\s*[a-z]\s*-?\s*\d{3}\s*$/i.test(t) || /(^|\s)(캠|카메라|cam|camera|cctv|감시실|감시\s*화면)(\s|$)/i.test(t) || /^(캠|cctv|감시)/i.test(t.trim())) return camera(t);
     // 봉인 문서(I Archi 행성 등)에 대한 요청은 무엇이든 승인 거부
     var seal = R.sealedIn(t);
     if (seal.length) return sealedReply(seal[0]);
