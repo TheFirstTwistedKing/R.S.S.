@@ -55,7 +55,6 @@
       closed: '캠을 종료했습니다.',
       notOpen: '켜져 있는 캠이 없습니다.'
     },
-    os: { open: 'OS 창을 띄웁니다. 상단 바를 잡고 옮기거나 가장자리를 끌어 크기를 바꿀 수 있습니다.', closed: 'OS 창을 닫았습니다.', notOpen: '열려 있는 OS 창이 없습니다.' },
     // Control 학습
     learn: {
       toApex: 'Apex, 학습 규칙 등록: "{say}" → "{act}".',
@@ -109,7 +108,6 @@
       { t: '도움말 · help        명령어 목록' },
       { t: '아카이브 · archive    문서 아카이브 창 열기' },
       { t: 'msg                  메신저 창 열기' },
-      { t: 'OS                   OS 창 열기 (Person Register) · OS 종료' },
       { t: '<캠 코드>            감시 화면 열기 (예: A-001)' },
       { t: '캠 종료              감시 화면 닫기' },
       { t: 'F11 · F4             완전 전체화면 · 캠 전체화면' },
@@ -184,7 +182,6 @@
       closed: 'Camera closed.',
       notOpen: 'No camera is open.'
     },
-    os: { open: 'Opening the OS window. Drag the top bar to move it, drag the edges to resize.', closed: 'OS window closed.', notOpen: 'No OS window is open.' },
     learn: {
       toApex: 'Apex, register rule: "{say}" → "{act}".',
       ack: 'Registered. {n} learned rules.',
@@ -236,7 +233,6 @@
       { t: 'help · 도움말        list commands' },
       { t: 'archive · 아카이브    open the document archive' },
       { t: 'msg                  open the messenger' },
-      { t: 'OS                   open the OS window (Person Register) · OS close' },
       { t: '<camera code>        open a monitor (e.g. A-001)' },
       { t: 'cam close            close the monitor' },
       { t: 'F11 · F4             full screen · camera full screen' },
