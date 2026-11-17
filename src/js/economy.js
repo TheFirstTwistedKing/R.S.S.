@@ -15,8 +15,8 @@
   var EUR = 0.908584;   // 1 USD 당 유로 (2026-11-17)
   // 통화: code · 나라 이름 · 시대 · 기준값(1 LEVC 당) · 하루 변동성(%) · 요인 노출 · 스프레드(%)
   var CUR = [
-    { code: 'SOL', ko: '루나시아', en: 'Lunaxia', era: 'old', base: 18273.21, vol: 0.5, f: { usd: 1, com: 0.5 }, spr: 0.06 },
-    { code: 'MOON', ko: '솔라리아', en: 'Solaria', era: 'old', base: 0.758255, vol: 0.55, f: { usd: 1, eur: 0.45 }, spr: 0.012 },
+    { code: 'MOON', ko: '루나시아', en: 'Lunaxia', era: 'old', base: 0.758255, vol: 0.55, f: { usd: 1, eur: 0.45 }, spr: 0.012 },
+    { code: 'SOL', ko: '솔라리아', en: 'Solaria', era: 'old', base: 18273.21, vol: 0.5, f: { usd: 1, com: 0.5 }, spr: 0.06 },
     { code: 'IGN', ko: '인페르누스 공화국', en: 'Infernusria res publica', era: 'old', base: EUR * 40.3399, vol: 0.5, f: { usd: 1, eur: 1 }, idio: 0.35, spr: 0.02 },
     { code: 'RTC', ko: '레스렉시온', en: 'Resurrección', era: 'old', base: EUR * 166.386, vol: 0.5, f: { usd: 1, eur: 1 }, idio: 0.35, spr: 0.02 },
     { code: 'VEC', ko: '버믹쿠루시아', en: 'Vermiculucia', era: 'oldlev', base: EUR * 1.95583, vol: 0.48, f: { usd: 1, eur: 1 }, idio: 0.3, spr: 0.012 },
@@ -238,7 +238,7 @@
   }
 
   /* ───────── 화면 ───────── */
-  var sel = 'SOL', mode = 'candle';
+  var sel = 'MOON', mode = 'candle';
   R.views.economy = function (root, opts) {
     init();
     if (opts && opts.code) sel = opts.code;
@@ -286,7 +286,7 @@
     var amt = h('input', { class: 'input', type: 'number', value: '1000', min: '0', step: 'any' });
     var codes = ['LEVC'].concat(CUR.map(function (c) { return c.code; }));
     var mk = function (v) { return h('select', { class: 'select' }, codes.map(function (cd) { var o = h('option', { value: cd }, cd + ' · ' + (cd === 'LEVC' ? T('리바이어던 공용', 'Leviathan') : CUR.filter(function (c) { return c.code === cd; })[0].name)); if (cd === v) o.selected = true; return o; })); };
-    var from = mk('LEVC'), to = mk(sel === 'LEVC' ? 'SOL' : sel), res = h('div', { class: 'eco-res' });
+    var from = mk('LEVC'), to = mk(sel === 'LEVC' ? 'MOON' : sel), res = h('div', { class: 'eco-res' });
     var swap = h('button', { class: 'btn', type: 'button', onclick: function () { var a = from.value; from.value = to.value; to.value = a; conv(); } }, '⇄');
     [amt, from, to].forEach(function (x) { x.addEventListener('input', conv); x.addEventListener('change', conv); });
     var newsEl = h('div', { class: 'eco-news' });

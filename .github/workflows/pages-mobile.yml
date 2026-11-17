@@ -1,0 +1,37 @@
+name: 모바일 웹앱 배포 (GitHub Pages)
+
+# main 에 mobile/ 이 바뀌어 병합되면 휴대폰용 R.S.S. Mobile 을 GitHub Pages 에 올림
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/pages-mobile.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.dep.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pages 설정 (처음이면 켜기)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: 모바일 앱 파일 올리기
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile
+      - name: 배포
+        id: dep
+        uses: actions/deploy-pages@v4
