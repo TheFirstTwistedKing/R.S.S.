@@ -45,6 +45,12 @@
     lock: '보관소를 잠급니다. 다시 뵙겠습니다.',
     backup: { out: '암호화 백업 파일을 저장합니다. 저장 위치를 골라 주십시오.', in: '백업 파일을 불러옵니다.', code: '접속 코드 변경 창을 엽니다.' },
     lang: { set: '언어를 한국어로 바꿨습니다.', apex: '출력 언어: 한국어.' },
+    eco: {
+      open: ['경제 현황을 엽니다. 환율은 실시간으로 바뀌고, 3초마다 봉 하나가 쌓입니다.', '환율 현황판을 띄웠습니다. 리바이어던 공용 화폐(LEVC) 기준입니다.'],
+      toApex: 'Apex, {코드} 시세 조회.',
+      quoteAck: '{코드} 현재 시세 출력.',
+      quote: '{이름} {코드}: 1 LEVC = {값} {코드} · 가치 변동 {변동}. 그래프를 띄웁니다.'
+    },
     // CCTV 감시실
     sim: {
       unknown: '"{q}" 은(는) 등록된 캠 코드가 아닙니다. 등록된 캠: {목록}',
@@ -113,6 +119,7 @@
       { t: '아카이브 · archive    문서 아카이브 창 열기' },
       { t: 'msg                  메신저 창 열기' },
       { t: 'CCTV · 캠            CCTV 감시실 열기 (카메라 9대)' },
+      { t: 'economy · 경제 · 환율   경제 · 환율 창 (예: SOL 환율)' },
       { t: '<캠 코드>            그 카메라를 크게 (예: A-001 · A-002 · B-001)' },
       { t: '캠 종료              감시실 닫기' },
       { t: 'F11                  완전 전체화면' },
@@ -178,6 +185,12 @@
     lock: 'Sealing the vault. See you soon.',
     backup: { out: 'Saving an encrypted backup. Choose a location.', in: 'Loading a backup file.', code: 'Opening the access code dialog.' },
     lang: { set: 'Language switched to English.', apex: 'Output language: English.' },
+    eco: {
+      open: 'Opening the economy board. Rates move live; a new candle every 3 seconds.',
+      toApex: 'Apex, quote {코드}.',
+      quoteAck: '{코드} quote.',
+      quote: '{이름} {코드}: 1 LEVC = {값} {코드} · value {변동}. Opening the chart.'
+    },
     sim: {
       unknown: '"{q}" is not a registered camera code. Registered: {목록}',
       gridToApex: 'Apex, link every monitor line.',
@@ -243,6 +256,7 @@
       { t: 'archive · 아카이브    open the document archive' },
       { t: 'msg                  open the messenger' },
       { t: 'CCTV · cam           open the CCTV room (9 cameras)' },
+      { t: 'economy · fx         economy and exchange rates (e.g. SOL fx)' },
       { t: '<camera code>        enlarge that camera (e.g. A-001)' },
       { t: 'cam close            close the CCTV room' },
       { t: 'F11                  full screen' },

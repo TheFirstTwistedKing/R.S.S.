@@ -291,6 +291,20 @@
     chain = chain.then(function () { if (R.cctv.isOpen()) R.cctv.focus(p.code); else R.go('cctv', { cam: p.code }); });
   }
 
+  function economy(t) {
+    var c = R.eco.find(t);
+    if (c && !/^(economy|eco|경제|환율|시세)$/i.test(t.trim())) {
+      var q = R.eco.quote(c);
+      CA(fmt(Lx().eco.toApex, { 코드: c.code }), { wait: 220 });
+      A(fmt(Lx().eco.quoteAck, { 코드: c.code }), { pre: [{ t: c.code + '  ' + c.name, c: 'hi' }, { t: fit('1 LEVC', 10) + q.text + ' ' + c.code }, { t: fit(R.T('가치', 'Value'), 10) + q.strength }] });
+      C(fmt(Lx().eco.quote, { 이름: c.name, 코드: c.code, 값: q.text, 변동: q.strength }));
+      chain = chain.then(function () { R.go('economy', { code: c.code }); });
+      return;
+    }
+    C(Lx().eco.open, { wait: 200 });
+    chain = chain.then(function () { R.go('economy'); });
+  }
+
   /* ───────── 학습 (Control 이 가르친 말을 기억) ───────── */
   var Q = '["\'“”‘’`]';
   var unq = function (s) { return String(s || '').trim().replace(new RegExp('^' + Q + '+|' + Q + '+$', 'g'), '').trim(); };
@@ -438,6 +452,8 @@
     if (/^(msg|메신저|messenger)$/.test(cmd)) { C(Lx().module.msg, { wait: 200 }); chain = chain.then(function () { R.go('msg'); }); return; }
     if (/^(아카이브|archive)(\s*(켜|열어|보여|on|open).*)?$/.test(cmd) || /아카이브\s*(좀\s*)?(켜|열어|보여)|open\s+(the\s+)?archive/i.test(t)) { C(Lx().module.files, { wait: 200 }); chain = chain.then(function () { R.go('files'); }); return; }
     if (/^(잠금|lock|잠가|잠가줘)$/.test(cmd)) return doLock();
+    // 경제 · 환율: "economy" · "경제" · "환율" → 창 열기, "SOL 환율" 처럼 화폐를 말하면 바로 시세
+    if (/(economy|\beco\b|경제|환율|시세|exchange\s*rate|\bfx\b)/i.test(t)) return economy(t);
     // CCTV: "CCTV" · "캠" · "감시실" 또는 캠 코드(A-001 · 캠 A-001), 닫기: 캠 종료
     if (/^\s*[a-z]\s*-?\s*\d{3}\s*$/i.test(t) || /(^|\s)(캠|카메라|cam|camera|cctv|감시실|감시\s*화면)(\s|$)/i.test(t) || /^(캠|cctv|감시)/i.test(t.trim())) return camera(t);
     // 봉인 문서(I Archi 행성 등)에 대한 요청은 무엇이든 승인 거부
