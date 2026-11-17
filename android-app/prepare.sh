@@ -15,6 +15,10 @@ sed -i 's#<color name="ic_launcher_background">.*</color>#<color name="ic_launch
 sed -i 's#<item name="android:background">@null</item>#<item name="android:background">@null</item>\n        <item name="android:statusBarColor">\#050607</item>\n        <item name="android:navigationBarColor">\#050607</item>\n        <item name="android:windowBackground">@android:color/black</item>#' "$R/values/styles.xml"
 # 세로 화면 고정
 sed -i 's#android:name=".MainActivity"#android:name=".MainActivity"\n            android:screenOrientation="portrait"#' android/app/src/main/AndroidManifest.xml
+# 서명: 매번 같은 키(android-app/debug.keystore)로 → 새 버전을 덮어 설치할 수 있음
+#  (빌드 서버의 기본 디버그 키는 실행마다 달라서 직접 지정)
+sed -i "0,/^android {/s##android {\n    signingConfigs {\n        debug {\n            storeFile file('../../debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n    }#" android/app/build.gradle
+grep -q "debug.keystore" android/app/build.gradle
 # 버전
 sed -i "s/versionCode 1$/versionCode ${VCODE}/; s/versionName \"1.0\"/versionName \"${VNAME}\"/" android/app/build.gradle
 grep -q "versionCode ${VCODE}" android/app/build.gradle
