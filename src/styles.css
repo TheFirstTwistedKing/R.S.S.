@@ -686,28 +686,7 @@ body.win-dragging { cursor: default; user-select: none; }
 .fwin.full .win-h { cursor: default; }
 .sim.full { left: 0 !important; top: var(--bn) !important; right: auto !important; width: 100vw !important; height: calc(100vh - var(--bn)) !important; }
 
-/* ══ OS 창 (Person Register) ══ */
-.xwin {
-  --cc: var(--line-3);
-  --cl: linear-gradient(to top right, transparent calc(50% - 1px), var(--cc) calc(50% - 1px) 50%, transparent 50%);
-  position: fixed; z-index: 46; top: calc(var(--bn) + 40px); left: 6vw;
-  width: min(1180px, 76vw); height: calc(78vh - var(--bn));
-  display: flex; flex-direction: column; min-width: 320px; min-height: 220px;
-  background: var(--cl) top right / 16px 16px no-repeat, var(--cl) bottom left / 16px 16px no-repeat, #070809;
-  border: 1px solid var(--line-3);
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6);
-  transition: top .35s cubic-bezier(.2, .8, .2, 1), left .35s cubic-bezier(.2, .8, .2, 1), width .35s cubic-bezier(.2, .8, .2, 1), height .35s cubic-bezier(.2, .8, .2, 1);
-}
-.xwin.opening { animation: rain-reveal .75s cubic-bezier(.3, .7, .2, 1) both; }
-.xwin-h { gap: var(--s2); }
-.xwin-h .win-t { font-family: var(--f-ui); letter-spacing: .02em; font-size: 13px; white-space: nowrap; }
-.xwin-body { position: relative; flex: 1; min-height: 0; background: #050505; }
-.xwin-view { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #050505; }
-.xwin.full { left: 0 !important; top: var(--bn) !important; width: 100vw !important; height: calc(100vh - var(--bn)) !important; clip-path: none; }
 @media (max-width: 700px) {
-  .xwin { left: 6px; right: 6px; top: calc(var(--bn) + 6px); width: auto; height: calc(100vh - var(--bn) - 12px); }
-  .xwin-h .win-s { display: none; }
   .rz { display: none; }
   .fwin .win-h { cursor: default; }
 }

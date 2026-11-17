@@ -30,19 +30,6 @@
     }, { passive: true });
     document.addEventListener('pointerdown', function () { el.classList.add('down'); }, { passive: true });
     document.addEventListener('pointerup', function () { el.classList.remove('down'); }, { passive: true });
-    // 앱 안에 띄운 페이지(OS 창 등)에서 보내 온 마우스 위치: 그 창의 위치만큼 옮겨서 같은 별 커서로 표시
-    window.addEventListener('message', function (e) {
-      var d = e.data; if (!d || d.rss !== 'cur') return;
-      if (d.down != null) { el.classList.toggle('down', !!d.down); return; }
-      var fr = Array.prototype.find.call(document.querySelectorAll('iframe'), function (f) { return f.contentWindow === e.source; });
-      if (!fr) return;
-      var r = fr.getBoundingClientRect();
-      el.classList.remove('off');
-      x = r.left + d.x * (r.width / (fr.clientWidth || r.width)); y = r.top + d.y * (r.height / (fr.clientHeight || r.height));
-      if (!raf) raf = requestAnimationFrame(place);
-      el.classList.toggle('hot', !!d.hot);
-      el.classList.toggle('text', !!d.text);
-    });
     document.documentElement.addEventListener('mouseleave', function () { el.classList.add('off'); });
     document.documentElement.addEventListener('mouseenter', function () { el.classList.remove('off'); });
   }
