@@ -1,0 +1,7 @@
+{
+  "appId": "org.rss.mobile",
+  "appName": "R.S.S. Mobile",
+  "webDir": "www",
+  "backgroundColor": "#050607",
+  "android": { "backgroundColor": "#050607", "allowMixedContent": false }
+}

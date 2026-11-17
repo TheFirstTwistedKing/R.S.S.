@@ -317,6 +317,7 @@
   }
 
   /* 설치(오프라인) 지원 */
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  // 안드로이드 앱(Capacitor)은 파일이 앱 안에 들어 있어 필요 없음 · 웹으로 열 때만 오프라인 보관
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) navigator.serviceWorker.register('sw.js').catch(function () {});
   lock();
 })();
