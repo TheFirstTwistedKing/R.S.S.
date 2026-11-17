@@ -54,7 +54,7 @@
     draw();
     say(create ? '새 접속 코드를 정하십시오 (숫자 4~8자리)' : '접속 코드를 입력하십시오');
   }
-  function fresh() { return { v: 1, created: Date.now(), cash: 0, granted: false, holdings: {}, log: [], work: { day: '' }, market: null }; }
+  function fresh() { return { v: 1, created: Date.now(), cash: 0, granted: false, holdings: {}, log: [], work: { day: '' }, market: null, invest: { cd: 0, req: null, active: [], hist: [] } }; }
 
   /* ───────── 진입: R.S.S. Mobile Simulation ───────── */
   function enter(isNew) {
@@ -89,7 +89,7 @@
       h('button', { class: 'top-x', type: 'button', onclick: function () { S.flush(); location.reload(); } }, 'LOCK'));
     var view = h('main', { class: 'view' });
     var nav = h('nav', { class: 'tabs' });
-    [['wallet', '지갑', 'WLT'], ['market', '시장', 'MKT'], ['work', '일하기', 'WRK'], ['log', '기록', 'LOG']].forEach(function (t) {
+    [['wallet', '지갑', 'WLT'], ['folio', '보유', 'PFO'], ['market', '시장', 'MKT'], ['work', '일하기', 'WRK'], ['log', '기록', 'LOG']].forEach(function (t) {
       nav.appendChild(h('button', { class: 'tab' + (tab === t[0] ? ' on' : ''), type: 'button', 'data-t': t[0], onclick: function () { go(t[0]); } }, h('i', null, t[2]), h('span', null, t[1])));
     });
     app.appendChild(head); app.appendChild(view); app.appendChild(nav);
@@ -99,12 +99,14 @@
       [].forEach.call(nav.children, function (b) { b.classList.toggle('on', b.getAttribute('data-t') === t); });
       if (undo) { undo(); undo = null; }
       view.innerHTML = ''; view.scrollTop = 0;
-      undo = ({ wallet: wallet, market: market, work: work, log: logView })[t](view) || null;
+      undo = ({ wallet: wallet, folio: folio, market: market, work: work, log: logView })[t](view) || null;
     }
     K.listeners.push(headUpd);
     // 시장 상태는 10초마다 보관소에 저장
     setInterval(function () { S.data.market = K.snapshot(); S.save(); }, 10000);
     M.workReset = function () { if (tab === 'work') go('work'); };
+    M.invest.start();
+    M.invest.listeners.push(headUpd);
     headUpd(); go(tab);
   }
 
@@ -113,8 +115,8 @@
     var d = S.data, hold = 0, cost = 0;
     Object.keys(d.holdings).forEach(function (id) { var x = d.holdings[id], c = K.co(id); if (!c || !x.q) return; hold += K.toLevc(x.q * c.price, c.cur); cost += x.cost; });
     var start = d.log.filter(function (l) { return l.k === 'grant' || l.k === 'work'; }).reduce(function (s, l) { return s + l.levc; }, 0);
-    var total = d.cash + hold;
-    return { total: total, cash: d.cash, hold: hold, cost: cost, pl: start ? (total / start - 1) * 100 : 0 };
+    var inv = M.invest.invested(), total = d.cash + hold + inv;
+    return { total: total, cash: d.cash, hold: hold, inv: inv, cost: cost, pl: start ? (total / start - 1) * 100 : 0 };
   }
 
   function spark(cv, a) {
@@ -164,6 +166,75 @@
     }
     K.listeners.push(upd); upd();
     return function () { K.listeners.splice(K.listeners.indexOf(upd), 1); };
+  }
+
+  /* ── 보유: 산 주식 한눈에 + 진행 중인 투자 · 투자 결과 ── */
+  function folio(v) {
+    var d = S.data, sum = h('section', { class: 'card pf-sum' }), list = h('div', { class: 'pf-list' }), inv = h('div', { class: 'logs' }), hist = h('div', { class: 'logs' });
+    v.appendChild(sum);
+    v.appendChild(h('div', { class: 'sec' }, '보유 주식'));
+    v.appendChild(list);
+    v.appendChild(h('div', { class: 'sec' }, '진행 중인 투자'));
+    v.appendChild(inv);
+    v.appendChild(h('div', { class: 'sec' }, '투자 결과'));
+    v.appendChild(hist);
+    v.appendChild(h('p', { class: 'note' }, '보유한 기업에서 가끔 투자 요청이 옵니다. 요청 금액은 그 기업 나라의 화폐로 제시되고, 결과는 60초 뒤에 나옵니다.'));
+    var cards = {}, built = '', n = 0;
+    function build(ids) {
+      list.innerHTML = ''; cards = {};
+      if (!ids.length) { list.appendChild(h('div', { class: 'empty' }, '보유한 주식이 없습니다. 시장에서 기업 주식을 사 보십시오.')); return; }
+      ids.forEach(function (id) {
+        var c = K.co(id), nat = K.FX.filter(function (f) { return f.code === c.cur; })[0];
+        var el = { q: h('b'), avg: h('b'), now: h('b'), val: h('b'), pl: h('b'), plp: h('span', { class: 'pf-plp' }), sp: h('canvas', { class: 'pf-sp' }) };
+        list.appendChild(h('button', { class: 'pf' + (c.risky ? ' risky' : ''), type: 'button', onclick: function () { detail(id); } },
+          h('div', { class: 'pf-h' }, h('div', null, h('div', { class: 'pf-n' }, c.ko), h('div', { class: 'pf-t' }, nat.ko + ' · ' + c.cur + ' · ' + c.sec + (c.risky ? ' · 고위험' : ''))), el.plp),
+          el.sp,
+          h('div', { class: 'pf-g' },
+            h('div', null, h('span', null, '보유 수량'), el.q), h('div', null, h('span', null, '평균 매수가'), el.avg), h('div', null, h('span', null, '현재가'), el.now),
+            h('div', null, h('span', null, '평가액'), el.val), h('div', null, h('span', null, '손익'), el.pl))));
+        cards[id] = el;
+      });
+    }
+    function upd() {
+      n++;
+      var w = worth(), ids = Object.keys(d.holdings).filter(function (id) { return d.holdings[id].q > 0 && K.co(id); });
+      sum.innerHTML = '';
+      sum.appendChild(h('div', { class: 'k' }, 'PORTFOLIO · 보유 현황'));
+      sum.appendChild(h('div', { class: 'w-grid' },
+        h('div', null, h('span', null, '주식 평가액'), h('b', null, M.num(Math.round(w.hold)))),
+        h('div', null, h('span', null, '투자 진행 중'), h('b', null, M.num(Math.round(w.inv)))),
+        h('div', null, h('span', null, '보유 종목'), h('b', null, ids.length + '곳'))));
+      if (ids.join() !== built) { built = ids.join(); build(ids); n = 1; }
+      ids.forEach(function (id) {
+        var x = d.holdings[id], c = K.co(id), e = cards[id]; if (!e) return;
+        if (x.lc == null) x.lc = x.cost * K.fx(c.cur);           // 예전 기록: 나라 화폐 원가를 지금 환율로 추정
+        var val = K.toLevc(x.q * c.price, c.cur), pl = val - x.cost, p = (val / x.cost - 1) * 100;
+        e.q.textContent = M.num(x.q) + '주'; e.avg.textContent = M.px(x.lc / x.q) + ' ' + c.cur; e.now.textContent = M.px(c.price) + ' ' + c.cur;
+        e.val.textContent = M.num(Math.round(val)) + ' LEVC';
+        e.pl.textContent = (pl >= 0 ? '+' : '−') + M.num(Math.abs(Math.round(pl))); e.pl.className = pl >= 0 ? 'up' : 'down';
+        e.plp.textContent = M.pct(p); e.plp.className = 'pf-plp ' + (p >= 0 ? 'up' : 'down');
+        if (n % 12 === 1) spark(e.sp, c);
+      });
+      // 진행 중인 투자 · 결과
+      var act = M.invest.pending();
+      inv.innerHTML = '';
+      if (!act.length) inv.appendChild(h('div', { class: 'empty' }, '진행 중인 투자가 없습니다.'));
+      act.forEach(function (a) {
+        var c = K.co(a.id), left = Math.max(0, Math.ceil((a.at - Date.now()) / 1000));
+        inv.appendChild(h('div', { class: 'lg' }, h('span', { class: 't' }, '결과까지 ' + left + '초'), h('span', { class: 'm' }, (c ? c.ko : a.id) + ' · ' + M.num(a.local) + ' ' + a.cur), h('b', null, M.num(Math.round(a.paid)))));
+      });
+      var hs = M.invest.history();
+      if (hist.dataset.n !== String(hs.length ? hs[0].t : 0)) {
+        hist.dataset.n = String(hs.length ? hs[0].t : 0); hist.innerHTML = '';
+        if (!hs.length) hist.appendChild(h('div', { class: 'empty' }, '아직 투자 결과가 없습니다.'));
+        hs.slice(0, 20).forEach(function (r) {
+          var c = K.co(r.id), g = r.back - r.paid;
+          hist.appendChild(h('div', { class: 'lg' }, h('span', { class: 't' }, M.hms(r.t)), h('span', { class: 'm' }, (c ? c.ko : r.id) + ' · 투자 ' + M.num(Math.round(r.paid)) + ' → ' + M.num(r.back)), h('b', { class: g >= 0 ? 'up' : 'down' }, (g >= 0 ? '+' : '−') + M.num(Math.abs(g)))));
+        });
+      }
+    }
+    K.listeners.push(upd); M.invest.listeners.push(upd); upd();
+    return function () { K.listeners.splice(K.listeners.indexOf(upd), 1); M.invest.listeners.splice(M.invest.listeners.indexOf(upd), 1); };
   }
 
   /* ── 시장 ── */
@@ -227,10 +298,10 @@
       var levc = K.toLevc(q * c.price, c.cur), x = d.holdings[id] || (d.holdings[id] = { q: 0, cost: 0 });
       if (dir > 0) {
         if (levc > d.cash) { M.sound.deny(); return M.toast('현금이 부족합니다'); }
-        d.cash -= levc; x.q += q; x.cost += levc; M.sound.buy();
+        d.cash -= levc; x.q += q; x.cost += levc; x.lc = (x.lc || 0) + q * c.price; M.sound.buy();
       } else {
         if (q > x.q) { M.sound.deny(); return M.toast('보유 수량보다 많이 팔 수 없습니다'); }
-        x.cost -= x.cost * q / x.q; x.q -= q; d.cash += levc; M.sound.sell();
+        var ratio = q / x.q; x.cost -= x.cost * ratio; if (x.lc) x.lc -= x.lc * ratio; x.q -= q; d.cash += levc; M.sound.sell();
         if (!x.q) delete d.holdings[id];
       }
       d.log.unshift({ t: Date.now(), k: dir > 0 ? 'buy' : 'sell', id: id, q: q, px: c.price, cur: c.cur, fx: K.fx(c.cur), levc: levc });
@@ -303,6 +374,8 @@
       var dt = new Date(l.t), when = (dt.getMonth() + 1) + '.' + dt.getDate() + ' ' + M.hms(l.t), what, amt;
       if (l.k === 'grant') { what = '시작 자금 지급'; amt = '+' + M.num(l.levc); }
       else if (l.k === 'work') { what = '장치 활성화 보수'; amt = '+' + M.num(l.levc); }
+      else if (l.k === 'inv') { var ci = K.co(l.id); what = '투자 ' + (ci ? ci.ko : l.id) + ' ' + M.num(l.local) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = '−' + M.num(Math.round(l.levc)); }
+      else if (l.k === 'invr') { var cr = K.co(l.id); what = '투자 결과 ' + (cr ? cr.ko : l.id) + ' · 투자금 ' + M.num(Math.round(l.paid)); amt = '+' + M.num(Math.round(l.levc)); }
       else { var c = K.co(l.id); what = (l.k === 'buy' ? '매수 ' : '매도 ') + (c ? c.ko : l.id) + ' ' + M.num(l.q) + '주 @ ' + M.px(l.px) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = (l.k === 'buy' ? '−' : '+') + M.num(Math.round(l.levc)); }
       list.appendChild(h('div', { class: 'lg ' + l.k }, h('span', { class: 't' }, when), h('span', { class: 'm' }, what), h('b', null, amt)));
     });

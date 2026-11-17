@@ -123,6 +123,7 @@
     buy: safe(function () { tone('triangle', 880, 1320, 0.09, 0.05); hiss(3000, 3, 0.15, 0.04); }),
     sell: safe(function () { tone('triangle', 1320, 660, 0.12, 0.05); hiss(2400, 3, 0.12, 0.04); }),
     plug: safe(function () { hiss(2200, 5, 0.5, 0.04); tone('sine', 120, 60, 0.08, 0.3); }),
+    alert: safe(function () { [988, 1319, 988, 1319].forEach(function (f, i) { tone('square', f, 0, 0.09, 0.03, i * 0.13); }); }),
     zap: safe(function () { hiss(5000, 0.8, 0.12, 0.08); }),
     gear: safe(function () { hiss(1800 + Math.random() * 400, 8, 0.25, 0.03); }),
     power: safe(function () { tone('sawtooth', 60, 220, 0.9, 0.05); tone('sine', 110, 440, 0.9, 0.08); [880, 1175, 1760].forEach(function (f, i) { tone('square', f, 0, 0.12, 0.02, 0.6 + i * 0.1); }); })
