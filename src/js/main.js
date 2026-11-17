@@ -3,7 +3,7 @@
   'use strict';
   var R = window.RSS, $ = R.$;
   R.version = '3.4.0';
-  var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'], cctv: ['CCTV-01', 'CCTV 감시실', 'CCTV room'] };
+  var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'], cctv: ['CCTV-01', 'CCTV 감시실', 'CCTV room'], economy: ['ECO-01', '경제 · 환율', 'Economy · FX'] };
   var destroy = null;
 
   /* 상단 아카이브 버튼의 문서 수 갱신 */
