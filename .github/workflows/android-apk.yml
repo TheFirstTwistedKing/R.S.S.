@@ -37,13 +37,16 @@ jobs:
         run: npm ci
       - name: 안드로이드 프로젝트 준비 (아이콘 · 시작 화면 · 세로 고정 · 버전)
         run: bash prepare.sh ${{ github.run_number }}
-      - name: 서명 키 (매번 같은 키 → 새 버전을 덮어 설치할 수 있음)
-        run: mkdir -p ~/.android && cp debug.keystore ~/.android/debug.keystore
       - name: APK 빌드
         working-directory: android-app/android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
-      - name: 파일 이름 정리
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk RSS-Mobile.apk
+      - name: 파일 이름 정리 · 서명 키 확인 (android-app/debug.keystore 와 같아야 함)
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk RSS-Mobile.apk
+          want=$(keytool -list -v -keystore debug.keystore -storepass android | grep -m1 'SHA256:' | awk '{print $2}')
+          got=$(keytool -printcert -jarfile RSS-Mobile.apk | grep -m1 'SHA256:' | awk '{print $2}')
+          echo "key $want / apk $got"
+          test "$want" = "$got"
       - uses: actions/upload-artifact@v4
         with:
           name: RSS-Mobile-apk
