@@ -13,7 +13,9 @@
     { code: 'VEC', ko: '버믹쿠루시아', base: EUR * 1.95583, vol: 0.48, eur: 1, spr: 0.012 },
     { code: 'RTC', ko: '레스렉시온', base: EUR * 166.386, vol: 0.5, eur: 1, spr: 0.02 },
     { code: 'SD', ko: '아스트랄리스', base: 124.097, vol: 0.75, eur: 0.5, spr: 0.09 },
-    { code: 'DEM', ko: '추풍(秋楓)', base: 6.67926, vol: 0.22, eur: 0, spr: 0.03, kappa: 0.006 }
+    { code: 'DEM', ko: '추풍(秋楓)', base: 6.67926, vol: 0.22, eur: 0, spr: 0.03, kappa: 0.006 },
+    { code: 'MEC', ko: '엘라렌', base: 1.42937, vol: 0.45, eur: 0.2, spr: 0.015 },
+    { code: 'EOM', ko: '은월(銀月)', base: 159.58, vol: 0.7, eur: 0.1, spr: 0.015 }
   ];
   // 기업: id · 이름 · 나라 화폐 · 시작 주가 · 하루 변동성(%) · 고위험 여부 · 업종
   var CO = [
@@ -32,9 +34,19 @@
     { id: 'osaek', ko: '오색단풍', cur: 'DEM', base: 18800, vol: 9, risky: true, sec: '복합 기업' },
     { id: 'ken', ko: '켄의 복사점', cur: 'DEM', base: 42.6, vol: 1.5, sec: '인쇄 · 복사' },
     { id: 'dp-build', ko: '단풍건설사', cur: 'DEM', base: 88.4, vol: 2.0, sec: '건설' },
-    { id: 'ryoko', ko: '료코의 공방기업', cur: 'DEM', base: 156, vol: 2.1, sec: '공방 · 제작' }
+    { id: 'ryoko', ko: '료코의 공방기업', cur: 'DEM', base: 156, vol: 2.1, sec: '공방 · 제작' },
+    { id: 'el-air', ko: '엘 항공사', cur: 'MEC', base: 1240, vol: 9, risky: true, sec: '항공' },
+    { id: 'seongmin', ko: '성민물류', cur: 'MEC', base: 46.8, vol: 1.6, sec: '물류' },
+    { id: 'laos', ko: '라오스무역', cur: 'MEC', base: 2960, vol: 9.5, risky: true, sec: '무역' },
+    { id: 'ester', ko: '에스터 공방기업', cur: 'MEC', base: 112.5, vol: 2.1, sec: '공방 · 제작' },
+    { id: 'hwanseo', ko: '환서조선', cur: 'MEC', base: 78.2, vol: 2.2, sec: '조선' },
+    { id: 'grace', ko: '그레이스 물류산업', cur: 'MEC', base: 64.4, vol: 1.7, sec: '물류' },
+    { id: 'memory', ko: '메모리 디벨롭 스튜디오', cur: 'EOM', base: 268000, vol: 10, risky: true, sec: '콘텐츠 개발' },
+    { id: 'moon-tour', ko: '달 관광사', cur: 'EOM', base: 4180, vol: 1.9, sec: '관광' },
+    { id: 'wolgwang', ko: '월광 공방기업', cur: 'EOM', base: 12650, vol: 2.2, sec: '공방 · 제작' },
+    { id: 'bloodyus', ko: '블러디어스 공방기업', cur: 'EOM', base: 9870, vol: 2.4, sec: '공방 · 제작' }
   ];
-  var NATIONS = ['VEC', 'RTC', 'SD', 'DEM'];
+  var NATIONS = ['VEC', 'RTC', 'SD', 'DEM', 'MEC', 'EOM'];
   var TICK = 250, PER = 12, SPEED = 60, KEEP = 200;
   var tv = Math.sqrt(TICK / 1000 * SPEED / 86400);
   function g() { var u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
@@ -59,7 +71,14 @@
         if (saved.open && saved.open[key]) a.open0 = saved.open[key];
       });
     }
-    if (fresh || !CO[0].candles.length) { for (var i = 0; i < 120 * PER; i++) step(Date.now() - (120 * PER - i) * TICK, true); }
+    // 지난 봉이 없는 것(처음 실행 · 새로 추가된 나라와 기업)만 지난 봉 120개를 미리 계산.
+    // 이미 저장된 것은 미리 계산하는 동안 움직이지 않게 상태를 보관했다가 되돌림
+    var missing = all.filter(function (a) { return !a.candles.length; });
+    if (missing.length) {
+      var keep = all.filter(function (a) { return a.candles.length; }).map(function (a) { return { a: a, x: a.x, c: a.candles.slice(), b: a.bar, hv: a.hv, j: a.jump }; });
+      for (var i = 0; i < 120 * PER; i++) step(Date.now() - (120 * PER - i) * TICK, true);
+      keep.forEach(function (k) { k.a.x = k.x; k.a.candles = k.c; k.a.bar = k.b; k.a.hv = k.hv; k.a.jump = k.j; });
+    }
     all.forEach(function (a) { a.price = Math.exp(a.x); if (!a.open0) a.open0 = a.candles.length ? a.candles[0].o : a.price; });
     K.running = true;
     setInterval(function () { step(Date.now(), false); }, TICK);
