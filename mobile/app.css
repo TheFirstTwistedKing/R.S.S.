@@ -309,3 +309,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ach-i.on { opacity: 1; border-color: var(--acc); background: linear-gradient(135deg, rgba(255, 176, 32, .1), transparent 70%); }
 .ach-i.on em { color: var(--acc); }
 .lg.fx b { color: var(--muted); } .lg.item b, .lg.mono b { color: var(--red); }
+
+/* 독점 취소: 평소엔 흐린 테두리, 한 번 누르면 빨간 확인 상태 */
+.btn.mono.off { border-color: var(--line2); color: var(--muted); }
+.btn.mono.off.arm { border-color: var(--red); color: var(--red); background: rgba(255, 70, 70, .08); }
+.lg.unmono b { color: var(--acc); }

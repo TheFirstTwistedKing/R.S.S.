@@ -2,12 +2,13 @@
    - 환전: LEVC ↔ 각 나라 화폐. 그 순간 환율에 0.5% 환전 수수료 (실제 환전소처럼 살 때 · 팔 때 값이 다름)
    - 특산품: 그 나라 화폐로만 살 수 있는 물건. 소장품으로 남음 (되팔 수 없음)
    - 독점: 기업 주가 × 150,000 (그 나라 화폐)을 그 순간 환율로 LEVC 에서 지불
+   - 독점 취소: 그 순간 독점 가치(주가 × 150,000 · 그 순간 환율)에서 수수료 10% 를 떼고 LEVC 로 돌려받음
      독점한 기업은 앱이 열려 있는 동안 1분마다 그 순간 독점 가치의 0.1% 를 그 나라 화폐로 지급 */
 (function () {
   'use strict';
   var M = window.RSSM, K = M.market, S = M.store;
-  var FEE = 0.005, MONO_X = 150000, MONO_YIELD = 0.001, MONO_EVERY = 60000;
-  var E = M.econ = { FEE: FEE, MONO_X: MONO_X, MONO_YIELD: MONO_YIELD, listeners: [] };
+  var FEE = 0.005, MONO_FEE = 0.1, MONO_X = 150000, MONO_YIELD = 0.001, MONO_EVERY = 60000;
+  var E = M.econ = { FEE: FEE, MONO_X: MONO_X, MONO_YIELD: MONO_YIELD, MONO_FEE: MONO_FEE, listeners: [] };
 
   /* 나라별 특산품 (각 나라 기업과 연결된 물건 · 가격은 그 나라 화폐) */
   E.ITEMS = [
@@ -92,6 +93,16 @@
     x.mono[id] = { t: Date.now(), paid: levc, local: local, earned: 0, last: Date.now() };
     log({ k: 'mono', id: id, levc: levc, local: local, cur: c.cur, fx: K.fx(c.cur) });
     S.save(); S.flush(); emit(); M.rec && M.rec.event('mono', c);
+    return null;
+  };
+  E.unmonoRefund = function (c) { return E.monoCostLevc(c) * (1 - MONO_FEE); };
+  E.unmonopolize = function (id) {
+    var c = K.co(id), x = d();
+    if (!c || !x.mono[id]) return '독점하지 않은 기업입니다';
+    var local = E.monoCostLocal(c), levc = E.unmonoRefund(c);
+    x.cash += levc; delete x.mono[id];
+    log({ k: 'unmono', id: id, levc: levc, local: local, cur: c.cur, fx: K.fx(c.cur) });
+    S.save(); S.flush(); emit();
     return null;
   };
   E.monoValue = function () { var x = d(), v = 0; Object.keys(x.mono).forEach(function (id) { var c = K.co(id); if (c) v += E.monoCostLevc(c); }); return v; };
