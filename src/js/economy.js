@@ -43,6 +43,16 @@
     { era: 'old', ko: '비아레카트리아', en: 'Vialaecatria', why: ['아스트랄리스로 변경', 'Became Astralis'], after: 3 }
   ];
   CUR.forEach(function (c) { Object.defineProperty(c, 'name', { get: function () { return R.lang === 'en' ? c.en : c.ko; } }); });
+  /* 기업 주가 (열람 전용): R.S.S. Mobile 과 같은 기업 · 시작 주가 · 변동 규칙. 각 앱이 따로 계산하므로 숫자는 휴대폰과 다름 */
+  var STOCKS = [
+    ['cg-pmc', '천공월아민간군사기업', 'VEC', 2480, 9, 1, '민간 군사'], ['ark', '아크 공방기업', 'VEC', 186.4, 2.2, 0, '공방 · 제작'], ['hongsaek', '홍색산업', 'VEC', 64.5, 1.8, 0, '중공업'], ['lhy-re', '이한영의 부동산', 'VEC', 92.3, 1.4, 0, '부동산'],
+    ['rebelia', '레벨리아의 공방', 'RTC', 18400, 2.3, 0, '공방 · 제작'], ['core', 'C.O.R.E.', 'RTC', 412000, 9.5, 1, '첨단 기술'], ['linear', '선형은행', 'RTC', 9650, 1.3, 0, '금융'], ['makgang', '막강건설사', 'RTC', 6320, 2.0, 0, '건설'],
+    ['sdp', 'STAR DEFENCE PROJECT', 'SD', 385000, 10, 1, '방위 산업'], ['starlight', '별빛 공방기업', 'SD', 21800, 2.2, 0, '공방 · 제작'], ['hwanseong', '환성감정소', 'SD', 14200, 1.6, 0, '감정 · 인증'], ['crown', 'C.R.O.W.N.', 'SD', 33500, 2.6, 0, '복합 기업'],
+    ['osaek', '오색단풍', 'DEM', 18800, 9, 1, '복합 기업'], ['ken', '켄의 복사점', 'DEM', 42.6, 1.5, 0, '인쇄 · 복사'], ['dp-build', '단풍건설사', 'DEM', 88.4, 2.0, 0, '건설'], ['ryoko', '료코의 공방기업', 'DEM', 156, 2.1, 0, '공방 · 제작'],
+    ['el-air', '엘 항공사', 'MEC', 1240, 9, 1, '항공'], ['seongmin', '성민물류', 'MEC', 46.8, 1.6, 0, '물류'], ['laos', '라오스무역', 'MEC', 2960, 9.5, 1, '무역'], ['ester', '에스터 공방기업', 'MEC', 112.5, 2.1, 0, '공방 · 제작'], ['hwanseo', '환서조선', 'MEC', 78.2, 2.2, 0, '조선'], ['grace', '그레이스 물류산업', 'MEC', 64.4, 1.7, 0, '물류'],
+    ['memory', '메모리 디벨롭 스튜디오', 'EOM', 268000, 10, 1, '메모리 기술 개발'], ['moon-tour', '달 관광사', 'EOM', 4180, 1.9, 0, '관광'], ['wolgwang', '월광 공방기업', 'EOM', 12650, 2.2, 0, '공방 · 제작'], ['bloodyus', '블러디어스 공방기업', 'EOM', 9870, 2.4, 0, '공방 · 제작']
+  ].map(function (a) { return { id: a[0], ko: a[1], nat: a[2], base: a[3], vol: a[4], risky: !!a[5], sec: a[6], stock: true }; });
+  var NATS = {}; STOCKS.forEach(function (s) { NATS[s.nat] = { h: 1 }; });
   R.ECO = { CUR: CUR, ERAS: ERAS, GONE: GONE };
 
   /* ───────── 시장 엔진 ───────── */
@@ -54,14 +64,14 @@
   function init() {
     if (M.started) return;
     M.started = true; M.t0 = Date.now();
-    CUR.forEach(function (c) {
+    CUR.concat(STOCKS).forEach(function (c) {
       c.x = Math.log(c.base); c.anchor = c.x; c.hv = 1; c.candles = []; c.open0 = c.base;
-      c.cur = null;
+      c.cur = null; c.price = c.base;
     });
     // 창을 처음 열었을 때 그래프가 비어 있지 않게, 지난 봉 160개를 같은 규칙으로 미리 계산
     var back = 160 * PER_CANDLE;
     for (var i = 0; i < back; i++) step(Date.now() - (back - i) * TICK, true);
-    CUR.forEach(function (c) { c.open0 = c.candles.length ? c.candles[0].o : c.base; });
+    CUR.concat(STOCKS).forEach(function (c) { c.open0 = c.candles.length ? c.candles[0].o : c.base; });
     setInterval(function () { step(Date.now(), false); }, TICK);
     scheduleNews();
   }
@@ -91,6 +101,21 @@
         if (c.cur) { c.candles.push(c.cur); if (c.candles.length > KEEP) c.candles.shift(); }
         c.cur = { t: now, o: p, h: p, l: p, c: p, n: 0 };
       }
+      var k = c.cur; k.h = Math.max(k.h, p); k.l = Math.min(k.l, p); k.c = p; k.n++;
+      c.price = p;
+    });
+    // 기업 주가: 나라 경기 요인 + 기업마다 다른 변동성 (고위험 기업은 가끔 크게 오르내림)
+    var zn = {};
+    Object.keys(NATS).forEach(function (n) { var e = gauss(); NATS[n].h = Math.max(0.5, Math.min(4, 0.98 * NATS[n].h + 0.02 * (0.6 + 0.4 * e * e))); zn[n] = e * Math.sqrt(NATS[n].h); });
+    STOCKS.forEach(function (c) {
+      var e = gauss();
+      c.hv = Math.max(0.45, Math.min(6, 0.97 * c.hv + 0.03 * (0.5 + 0.5 * e * e)));
+      var shock = c.vol / 100 * tickVol * (0.45 * zn[c.nat] + 0.85 * e * Math.sqrt(c.hv));
+      if (c.risky && Math.random() < 0.0009) { c.jump = (c.jump || 0) + (Math.random() < 0.5 ? -1 : 1) * (0.03 + Math.random() * 0.06); c.hv = Math.min(6, c.hv + 2.5); }
+      if (c.jump) { shock += c.jump / 5; c.jump *= 4 / 5; if (Math.abs(c.jump) < 1e-5) c.jump = 0; }
+      c.x += shock - 0.00004 * (c.x - c.anchor);
+      var p = Math.exp(c.x);
+      if (!c.cur || c.cur.n >= PER_CANDLE) { if (c.cur) { c.candles.push(c.cur); if (c.candles.length > KEEP) c.candles.shift(); } c.cur = { t: now, o: p, h: p, l: p, c: p, n: 0 }; }
       var k = c.cur; k.h = Math.max(k.h, p); k.l = Math.min(k.l, p); k.c = p; k.n++;
       c.price = p;
     });
@@ -166,13 +191,14 @@
     var s = sizeCanvas(cv), g = cv.getContext('2d'), pts = c.candles.slice(-48).map(function (k) { return k.c; }).concat([c.price]);
     g.clearRect(0, 0, s.w, s.h);
     var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), rg = hi - lo || hi * 1e-6;
-    g.lineWidth = 1.2 * s.k; g.strokeStyle = strength(c) >= 0 ? COL.up : COL.down; g.beginPath();
+    g.lineWidth = 1.2 * s.k; g.strokeStyle = (c.stockUp != null ? c.stockUp : strength(c) >= 0) ? COL.up : COL.down; g.beginPath();
     pts.forEach(function (v, i) { var x = i / (pts.length - 1) * (s.w - 2) + 1, y = s.h - 2 - (v - lo) / rg * (s.h - 4); if (i) g.lineTo(x, y); else g.moveTo(x, y); });
     g.stroke();
   }
 
   /* 큰 그래프: 3초 봉(캔들) + 20봉 이동평균 + 현재가 선 · 마우스를 올리면 그 봉의 시가/고가/저가/종가 */
   function drawChart(cv, c, mode, hover) {
+    var stock = !!c.stock;   // 주가: 오른 봉 = 주황 (환율은 숫자가 내려간 봉 = 그 화폐 강세 = 주황)
     var s = sizeCanvas(cv), g = cv.getContext('2d'), k = s.k;
     var padR = 78 * k, padB = 22 * k, padT = 10 * k, W = s.w - padR, Hh = s.h - padB - padT;
     var cw = 8 * k, n = Math.max(10, Math.floor(W / cw)), list = c.candles.slice(-(n - 1)).concat([c.cur]);
@@ -204,7 +230,7 @@
     } else {
       list.forEach(function (q, i) {
         // 숫자가 내려간 봉 = 그 통화가 강해진 봉 → 주황, 올라간 봉 = 약해진 봉 → 빨강
-        var x = x0 + i * cw, up = q.c <= q.o, col = up ? COL.up : COL.down;
+        var x = x0 + i * cw, up = stock ? q.c >= q.o : q.c <= q.o, col = up ? COL.up : COL.down;
         g.strokeStyle = col; g.fillStyle = col; g.lineWidth = Math.max(1, k);
         var cx = Math.round(x + cw / 2) + 0.5; g.beginPath(); g.moveTo(cx, Y(q.h)); g.lineTo(cx, Y(q.l)); g.stroke();
         var yo = Y(q.o), yc = Y(q.c), top = Math.min(yo, yc), bh = Math.max(1, Math.abs(yc - yo));
@@ -290,11 +316,13 @@
     var swap = h('button', { class: 'btn', type: 'button', onclick: function () { var a = from.value; from.value = to.value; to.value = a; conv(); } }, '⇄');
     [amt, from, to].forEach(function (x) { x.addEventListener('input', conv); x.addEventListener('change', conv); });
     var newsEl = h('div', { class: 'eco-news' });
+    var coBox = h('div', { class: 'eco-cos' }), coHead = h('h4'), coCard = h('div', { class: 'eco-card eco-co-card' }, coHead, coBox), selCo = null, coRows = {};
     var movers = h('div', { class: 'eco-movers' });
 
     var main = h('section', { class: 'eco-main' },
       h('div', { class: 'eco-head' }, h('div', null, hName, hCode), h('div', { class: 'eco-q' }, hPrice, hCh)),
       stats,
+      coCard,
       h('div', { class: 'eco-chart-wrap' }, h('div', { class: 'eco-chart-tools' }, modeBtn, note), h('div', { class: 'eco-chart-box' }, cv, tip)),
       h('div', { class: 'eco-bottom' },
         h('div', { class: 'eco-card' }, h('h4', null, T('환전 계산', 'Converter')), h('div', { class: 'eco-conv' }, amt, from, swap, to), res),
@@ -307,8 +335,26 @@
     cv.addEventListener('pointerleave', function () { hover = null; tip.hidden = true; draw(); });
 
     function cur() { return sel === 'LEVC' ? null : CUR.filter(function (c) { return c.code === sel; })[0]; }
+    /* 나라를 고르면 그 나라 기업 목록 · 기업을 누르면 그 기업 주가 그래프 */
+    function drawCos() {
+      coBox.innerHTML = ''; coRows = {};
+      var list = STOCKS.filter(function (s) { return s.nat === sel; });
+      coCard.hidden = !list.length;
+      if (!list.length) return;
+      var nat = CUR.filter(function (x) { return x.code === sel; })[0];
+      coHead.textContent = '';
+      coHead.appendChild(document.createTextNode(T(nat.ko + ' 기업 주가 · 열람 전용', nat.en + ' stocks · view only')));
+      if (selCo) coHead.appendChild(h('button', { class: 'eco-back', type: 'button', onclick: function () { selCo = null; R.sound.nav(); drawCos(); draw(true); } }, T('‹ 환율 그래프로', '‹ Back to FX')));
+      list.forEach(function (s) {
+        var pr = h('span', { class: 'eco-cv' }), ch = h('span', { class: 'eco-cc' }), sp = h('canvas', { class: 'eco-csp' });
+        var b = h('button', { class: 'eco-co' + (selCo === s ? ' on' : '') + (s.risky ? ' risky' : ''), type: 'button', onclick: function () { selCo = selCo === s ? null : s; R.sound.nav(); drawCos(); draw(true); } },
+          h('span', { class: 'eco-cn' }, s.ko, h('em', null, (s.risky ? T('고위험 · ', 'High risk · ') : '') + s.sec)), sp, pr, ch);
+        coRows[s.id] = { pr: pr, ch: ch, sp: sp, s: s };
+        coBox.appendChild(b);
+      });
+    }
     function pick(code) {
-      sel = code; R.sound.nav();
+      sel = code; selCo = null; R.sound.nav(); drawCos();
       Object.keys(rows).forEach(function (k) { rows[k].el.classList.toggle('on', k === sel); });
       if (code !== 'LEVC') { to.value = code; conv(); }
       draw(true);
@@ -335,9 +381,30 @@
         var st = strength(x); r.ch.textContent = sgn(st); r.ch.className = 'eco-c ' + (st >= 0 ? 'up' : 'down');
         if (full || newCandle !== lastCandle) sparkline(r.sp, x);
       });
+      Object.keys(coRows).forEach(function (k) {
+        var r = coRows[k], s = r.s, chg = (s.price / s.open0 - 1) * 100;
+        r.pr.textContent = fmt(s.price) + ' ' + s.nat; r.ch.textContent = sgn(chg, 2); r.ch.className = 'eco-cc ' + (chg >= 0 ? 'up' : 'down');
+        if (full || newCandle !== lastCandle) sparkline(r.sp, { candles: s.candles, price: s.price, base: s.base, open0: s.open0, stockUp: chg >= 0 });
+      });
       lastCandle = newCandle;
+      // 그래프 설명: 주가인지 환율인지에 맞게
+      note.textContent = selCo ? T('주가 (' + selCo.nat + ') · 봉 하나 = 3초 · 점선 = 20봉 이동평균 · 오른 봉은 주황, 내린 봉은 빨강 · 거래는 R.S.S. Mobile 에서', 'Price in ' + selCo.nat + ' · one candle = 3 s · dashed = 20-candle MA · trade in R.S.S. Mobile')
+        : T('1 LEVC 당 환율 · 봉 하나 = 3초 · 점선 = 20봉 이동평균 · 숫자가 내려가면 그 화폐의 가치가 오른 것', 'Units per 1 LEVC · one candle = 3 s · dashed = 20-candle MA · a falling number means the currency gained value');
+      // 고른 기업
+      if (selCo) {
+        var s = selCo, chg = (s.price / s.open0 - 1) * 100, allc = s.candles.concat([s.cur]), shi = -Infinity, slo = Infinity;
+        allc.forEach(function (q) { shi = Math.max(shi, q.h); slo = Math.min(slo, q.l); });
+        hName.textContent = s.ko; hCode.textContent = s.sec + ' · ' + c.name + ' · ' + s.nat + (s.risky ? T(' · 고위험', ' · high risk') : '');
+        hPrice.textContent = fmt(s.price) + ' ' + s.nat; hCh.textContent = sgn(chg, 2) + '  ·  ≈ ' + fmt(s.price / c.price) + ' LEVC'; hCh.className = 'eco-pch ' + (chg >= 0 ? 'up' : 'down');
+        stats.innerHTML = '';
+        [[T('시가', 'Open'), fmt(s.open0)], [T('고가', 'High'), fmt(shi)], [T('저가', 'Low'), fmt(slo)], [T('LEVC 환산', 'In LEVC'), fmt(s.price / c.price)],
+          [T('변동성', 'Volatility'), s.hv > 2 ? T('높음', 'High') : s.hv > 1.2 ? T('보통', 'Normal') : T('안정', 'Calm')], [T('거래', 'Trading'), T('R.S.S. Mobile 에서', 'In R.S.S. Mobile')]]
+          .forEach(function (x) { stats.appendChild(stat(x[0], x[1])); });
+        var qs = drawChart(cv, s, mode, hover);
+        if (qs) { tip.hidden = false; tip.textContent = hms(qs.t) + '   O ' + fmt(qs.o) + '   H ' + fmt(qs.h) + '   L ' + fmt(qs.l) + '   C ' + fmt(qs.c); } else tip.hidden = true;
+      }
       // 고른 통화
-      if (!c) {
+      else if (!c) {
         hName.textContent = T('리바이어던 공용 화폐', 'Leviathan Common Currency'); hCode.textContent = 'LEVC · ' + T('기준 통화', 'base currency');
         hPrice.textContent = ix.toFixed(3); hCh.textContent = T('LEVC 지수 ', 'LEVC index ') + sgn(pct(ix, ix0)); hCh.className = 'eco-pch ' + (ix >= ix0 ? 'up' : 'down');
         stats.innerHTML = ''; stats.appendChild(stat(T('의미', 'Meaning'), T('모든 화폐 대비 LEVC 의 강약 (처음 = 100)', 'LEVC strength vs all currencies (start = 100)')));
@@ -385,6 +452,7 @@
     var off = function () { draw(); };
     M.listeners.push(off);
     var ro = new ResizeObserver(function () { draw(true); }); ro.observe(cv); ro.observe(list);
+    drawCos();
     setTimeout(function () { draw(true); }, 30);
     R.log('SYS', T('경제 현황 연결 · 환율 ', 'Economy linked · ') + CUR.length + T('종', ' currencies'));
     return function () { M.listeners = M.listeners.filter(function (f) { return f !== off; }); ro.disconnect(); };

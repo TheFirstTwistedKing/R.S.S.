@@ -54,7 +54,7 @@
     draw();
     say(create ? '새 접속 코드를 정하십시오 (숫자 4~8자리)' : '접속 코드를 입력하십시오');
   }
-  function fresh() { return { v: 1, created: Date.now(), cash: 0, granted: false, holdings: {}, log: [], work: { day: '' }, market: null, invest: { cd: 0, req: null, active: [], hist: [] } }; }
+  function fresh() { return { v: 1, created: Date.now(), cash: 0, granted: false, holdings: {}, log: [], work: { day: '' }, market: null, invest: { cd: 0, req: null, active: [], hist: [] }, fxw: {}, items: {}, mono: {}, jobs: {} }; }
 
   /* ───────── 진입: R.S.S. Mobile Simulation ───────── */
   function enter(isNew) {
@@ -89,24 +89,26 @@
       h('button', { class: 'top-x', type: 'button', onclick: function () { S.flush(); location.reload(); } }, 'LOCK'));
     var view = h('main', { class: 'view' });
     var nav = h('nav', { class: 'tabs' });
-    [['wallet', '지갑', 'WLT'], ['folio', '보유', 'PFO'], ['market', '시장', 'MKT'], ['work', '일하기', 'WRK'], ['log', '기록', 'LOG']].forEach(function (t) {
+    [['wallet', '지갑', 'WLT'], ['folio', '보유', 'PFO'], ['market', '시장', 'MKT'], ['shop', '상점', 'SHP'], ['work', '일하기', 'WRK'], ['log', '기록', 'LOG']].forEach(function (t) {
       nav.appendChild(h('button', { class: 'tab' + (tab === t[0] ? ' on' : ''), type: 'button', 'data-t': t[0], onclick: function () { go(t[0]); } }, h('i', null, t[2]), h('span', null, t[1])));
     });
     app.appendChild(head); app.appendChild(view); app.appendChild(nav);
-    function headUpd() { var v = worth(); total.textContent = M.levc(v.total); pl.textContent = ' ' + M.pct(v.pl); pl.className = v.pl >= 0 ? 'up' : 'down'; }
+    function headUpd() { var v = worth(); M.rec.total(v.total); total.textContent = M.levc(v.total); pl.textContent = ' ' + M.pct(v.pl); pl.className = v.pl >= 0 ? 'up' : 'down'; }
     function go(t) {
       tab = t; M.sound.tap();
       [].forEach.call(nav.children, function (b) { b.classList.toggle('on', b.getAttribute('data-t') === t); });
       if (undo) { undo(); undo = null; }
       view.innerHTML = ''; view.scrollTop = 0;
-      undo = ({ wallet: wallet, folio: folio, market: market, work: work, log: logView })[t](view) || null;
+      undo = ({ wallet: wallet, folio: folio, market: market, shop: shop, work: work, log: logView })[t](view) || null;
     }
     K.listeners.push(headUpd);
     // 시장 상태는 10초마다 보관소에 저장
     setInterval(function () { S.data.market = K.snapshot(); S.save(); }, 10000);
     M.workReset = function () { if (tab === 'work') go('work'); };
     M.invest.start();
+    M.econ.start();
     M.invest.listeners.push(headUpd);
+    M.econ.listeners.push(headUpd);
     headUpd(); go(tab);
   }
 
@@ -115,8 +117,8 @@
     var d = S.data, hold = 0, cost = 0;
     Object.keys(d.holdings).forEach(function (id) { var x = d.holdings[id], c = K.co(id); if (!c || !x.q) return; hold += K.toLevc(x.q * c.price, c.cur); cost += x.cost; });
     var start = d.log.filter(function (l) { return l.k === 'grant' || l.k === 'work'; }).reduce(function (s, l) { return s + l.levc; }, 0);
-    var inv = M.invest.invested(), total = d.cash + hold + inv;
-    return { total: total, cash: d.cash, hold: hold, inv: inv, cost: cost, pl: start ? (total / start - 1) * 100 : 0 };
+    var inv = M.invest.invested(), loc = M.econ.localValue(), mono = M.econ.monoValue(), total = d.cash + hold + inv + loc + mono;
+    return { total: total, cash: d.cash, hold: hold, inv: inv, loc: loc, mono: mono, cost: cost, pl: start ? (total / start - 1) * 100 : 0 };
   }
 
   function spark(cv, a) {
@@ -247,7 +249,7 @@
       K.CO.filter(function (c) { return c.cur === code; }).forEach(function (c) {
         var pr = h('span', { class: 'r-v' }), ch = h('span', { class: 'r-c' }), sp = h('canvas', { class: 'r-sp' });
         box.appendChild(h('button', { class: 'row' + (c.risky ? ' risky' : ''), type: 'button', onclick: function () { detail(c.id); } },
-          h('span', { class: 'r-n' }, c.ko, h('em', null, (c.risky ? '고위험 · ' : '') + c.sec)), sp, pr, ch));
+          h('span', { class: 'r-n' }, c.ko, h('em', null, (M.econ.owns(c.id) ? '독점 · ' : '') + (c.risky ? '고위험 · ' : '') + c.sec)), sp, pr, ch));
         rows.push({ c: c, pr: pr, ch: ch, sp: sp });
       });
       rows.push({ fx: f, el: fxv });
@@ -273,7 +275,7 @@
     if (sheet) sheet();
     var price = h('div', { class: 'd-p' }), sub = h('div', { class: 'd-s' }), cv = h('canvas', { class: 'd-chart' });
     var holdEl = h('div', { class: 'd-hold' }), qty = h('input', { class: 'inp', type: 'number', inputmode: 'numeric', min: '1', step: '1', value: '1' });
-    var est = h('div', { class: 'd-est' });
+    var est = h('div', { class: 'd-est' }), monoEl = h('div', { class: 'd-mono' }), monoBtn = h('button', { class: 'btn mono', type: 'button', onclick: function () { var err = M.econ.monopolize(id); if (err) { M.sound.deny(); return M.toast(err); } M.sound.power(); M.toast(c.ko + ' 독점 완료'); upd(); } }, '기업 독점');
     var bBuy = h('button', { class: 'btn buy', type: 'button', onclick: function () { trade(1); } }, '매수');
     var bSell = h('button', { class: 'btn sell', type: 'button', onclick: function () { trade(-1); } }, '매도');
     var quick = h('div', { class: 'quick' });
@@ -286,22 +288,23 @@
       h('div', { class: 'd-h' }, h('div', null, h('h2', null, c.ko), h('div', { class: 'd-tag' }, c.sec + ' · ' + K.FX.filter(function (f) { return f.code === c.cur; })[0].ko + ' · ' + c.cur + (c.risky ? ' · 고위험' : ''))), h('div', { class: 'd-q' }, price, sub)),
       h('div', { class: 'd-cbox' }, cv), h('div', { class: 'd-cap' }, '봉 하나 = 3초 · 점선 = 20봉 이동평균 · 시장 시간 60배속'),
       holdEl,
+      monoEl,
       h('div', { class: 'd-trade' }, h('label', null, h('span', null, '수량 (주)'), qty), quick, est, h('div', { class: 'd-btns' }, bBuy, bSell)));
     var shade = h('div', { class: 'shade', onclick: function () { close(); } });
     document.body.appendChild(shade); document.body.appendChild(el);
     requestAnimationFrame(function () { el.classList.add('in'); shade.classList.add('in'); });
     qty.addEventListener('input', upd);
-    function close() { el.classList.remove('in'); shade.classList.remove('in'); K.listeners.splice(K.listeners.indexOf(upd), 1); setTimeout(function () { el.remove(); shade.remove(); }, 260); sheet = null; }
+    function close() { el.classList.remove('in'); shade.classList.remove('in'); K.listeners.splice(K.listeners.indexOf(upd), 1); M.econ.listeners.splice(M.econ.listeners.indexOf(upd), 1); setTimeout(function () { el.remove(); shade.remove(); }, 260); sheet = null; }
     sheet = close;
     function trade(dir) {
       var q = Math.floor(+qty.value || 0); if (q < 1) return M.toast('수량을 1주 이상 입력하십시오');
       var levc = K.toLevc(q * c.price, c.cur), x = d.holdings[id] || (d.holdings[id] = { q: 0, cost: 0 });
       if (dir > 0) {
         if (levc > d.cash) { M.sound.deny(); return M.toast('현금이 부족합니다'); }
-        d.cash -= levc; x.q += q; x.cost += levc; x.lc = (x.lc || 0) + q * c.price; M.sound.buy();
+        d.cash -= levc; x.q += q; x.cost += levc; x.lc = (x.lc || 0) + q * c.price; M.sound.buy(); M.rec.event('buy', c);
       } else {
         if (q > x.q) { M.sound.deny(); return M.toast('보유 수량보다 많이 팔 수 없습니다'); }
-        var ratio = q / x.q; x.cost -= x.cost * ratio; if (x.lc) x.lc -= x.lc * ratio; x.q -= q; d.cash += levc; M.sound.sell();
+        var ratio = q / x.q; x.cost -= x.cost * ratio; if (x.lc) x.lc -= x.lc * ratio; x.q -= q; d.cash += levc; M.sound.sell(); M.rec.event('sell', c);
         if (!x.q) delete d.holdings[id];
       }
       d.log.unshift({ t: Date.now(), k: dir > 0 ? 'buy' : 'sell', id: id, q: q, px: c.price, cur: c.cur, fx: K.fx(c.cur), levc: levc });
@@ -324,9 +327,26 @@
         holdEl.appendChild(h('div', null, h('span', null, '평가액'), h('b', null, M.num(Math.round(val)) + ' LEVC')));
         holdEl.appendChild(h('div', null, h('span', null, '수익률'), h('b', { class: pp >= 0 ? 'up' : 'down' }, M.pct(pp))));
       } else holdEl.appendChild(h('div', null, h('span', null, '현금'), h('b', null, M.levc(d.cash))));
+      // 독점: 주가 × 150,000 (그 나라 화폐) · 그 순간 환율로 LEVC 지불
+      monoEl.innerHTML = '';
+      var ml = M.econ.monoCostLocal(c), mv = M.econ.monoCostLevc(c), own = M.econ.data().mono[id];
+      if (own) {
+        monoEl.classList.add('own');
+        monoEl.appendChild(h('div', { class: 'dm-h' }, h('span', { class: 'dm-k' }, 'MONOPOLY'), h('b', null, '독점 중')));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 가치'), h('b', null, M.px(ml) + ' ' + c.cur + ' ≈ ' + M.levc(mv))));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 수익 (1분마다)'), h('b', { class: 'up' }, '+' + M.px(ml * M.econ.MONO_YIELD) + ' ' + c.cur)));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '지금까지 받은 수익'), h('b', null, M.px(own.earned) + ' ' + c.cur)));
+      } else {
+        monoEl.classList.remove('own');
+        monoEl.appendChild(h('div', { class: 'dm-h' }, h('span', { class: 'dm-k' }, 'MONOPOLY'), h('b', null, '기업 독점')));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 비용 (주가 × 150,000)'), h('b', null, M.px(ml) + ' ' + c.cur)));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '지금 환율로'), h('b', { class: mv > d.cash ? 'down' : '' }, M.levc(mv))));
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 수익'), h('b', null, '1분마다 독점 가치의 0.1% (' + c.cur + ')')));
+        monoEl.appendChild(monoBtn);
+      }
       chart(cv, c);
     }
-    K.listeners.push(upd); upd();
+    K.listeners.push(upd); M.econ.listeners.push(upd); upd();
   }
 
   function chart(cv, a) {
@@ -358,22 +378,91 @@
 
   /* ── 일하기 ── */
   function work(v) {
-    return M.work(v, S.data, function (pay) {
-      S.data.cash += pay; S.data.log.unshift({ t: Date.now(), k: 'work', levc: pay }); S.save(); S.flush();
-      M.toast('장치 활성화 · ' + M.levc(pay) + ' 지급');
+    return M.jobsView(v, function (pay, job) {
+      var j = M.JOBS.filter(function (x) { return x.id === job; })[0];
+      S.data.cash += pay; S.data.log.unshift({ t: Date.now(), k: 'work', levc: pay, job: job }); S.save(); S.flush();
+      M.rec.event('work', { pay: pay, job: job });
+      M.toast((j ? j.ko : '일') + ' · ' + M.levc(pay) + ' 지급');
     });
+  }
+
+  /* ── 상점: 나라 화폐 지갑 · 환전 · 특산품 · 소장품 ── */
+  var shopNat = 'VEC';
+  function shop(v) {
+    var E = M.econ, d = E.data();
+    var bal = h('div', { class: 'sp-bal' }), chips = h('div', { class: 'sp-chips' }), items = h('div', { class: 'sp-items' }), coll = h('div', { class: 'sp-coll' });
+    var amt = h('input', { class: 'inp', type: 'number', inputmode: 'decimal', min: '0', step: 'any', placeholder: '금액' });
+    var dirBtn = h('div', { class: 'sp-dir' }), quote = h('div', { class: 'sp-q' }), dir = 1;
+    var go2 = h('button', { class: 'btn buy', type: 'button', onclick: function () { var err = E.exchange(dir, amt.value, shopNat); if (err) { M.sound.deny(); return M.toast(err); } M.sound.buy(); M.toast('환전 완료'); amt.value = ''; upd(); } }, '환전');
+    v.appendChild(h('div', { class: 'sec' }, '나라 화폐 지갑'));
+    v.appendChild(bal);
+    v.appendChild(h('div', { class: 'sec' }, '환전 · 수수료 ' + (E.FEE * 100) + '%'));
+    v.appendChild(chips);
+    v.appendChild(h('section', { class: 'card sp-ex' }, dirBtn, amt, quote, go2));
+    v.appendChild(h('div', { class: 'sec' }, '특산품 · 그 나라 화폐로만 살 수 있음'));
+    v.appendChild(items);
+    v.appendChild(h('div', { class: 'sec' }, '소장품'));
+    v.appendChild(coll);
+    function setDir(x) { dir = x; dirBtn.innerHTML = '';
+      dirBtn.appendChild(h('button', { class: 'tabx' + (dir > 0 ? ' on' : ''), type: 'button', onclick: function () { setDir(1); M.sound.tap(); } }, 'LEVC → ' + shopNat));
+      dirBtn.appendChild(h('button', { class: 'tabx' + (dir < 0 ? ' on' : ''), type: 'button', onclick: function () { setDir(-1); M.sound.tap(); } }, shopNat + ' → LEVC'));
+      amt.placeholder = dir > 0 ? '보낼 LEVC' : '보낼 ' + shopNat; upd(); }
+    function drawChips() { chips.innerHTML = '';
+      K.NATIONS.forEach(function (n) { var f = K.FX.filter(function (x) { return x.code === n; })[0];
+        chips.appendChild(h('button', { class: 'chip' + (n === shopNat ? ' on' : ''), type: 'button', onclick: function () { shopNat = n; M.sound.tap(); drawChips(); setDir(dir); drawItems(); } }, f.ko.replace(/\(.*\)/, ''), h('em', null, n))); }); }
+    function drawItems() { items.innerHTML = '';
+      E.ITEMS.filter(function (i) { return i.cur === shopNat; }).forEach(function (it) {
+        var n = d.items[it.id] || 0;
+        items.appendChild(h('div', { class: 'sp-item' + (n ? ' has' : '') },
+          h('div', null, h('b', null, it.ko), h('span', null, it.by + (n ? ' · ' + n + '개 소장' : ''))),
+          h('div', { class: 'sp-ip' }, h('b', null, M.px(it.price) + ' ' + it.cur), h('span', { class: 'sp-lv' }, '≈ ' + M.num(Math.round(K.toLevc(it.price, it.cur))) + ' LEVC')),
+          h('button', { class: 'btn sell sp-buy', type: 'button', onclick: function () { var err = E.buyItem(it.id); if (err) { M.sound.deny(); return M.toast(err); } M.sound.buy(); M.toast(it.ko + ' 구매'); drawItems(); drawColl(); upd(); } }, '구매')));
+      }); }
+    function drawColl() { coll.innerHTML = '';
+      var ids = Object.keys(d.items).filter(function (k) { return d.items[k] > 0; });
+      if (!ids.length) { coll.appendChild(h('div', { class: 'empty' }, '아직 모은 특산품이 없습니다.')); return; }
+      ids.forEach(function (k) { var it = E.item(k); if (it) coll.appendChild(h('div', { class: 'sp-ci' }, h('em', null, it.cur), h('b', null, it.ko), h('span', null, '× ' + d.items[k]))); }); }
+    function upd() {
+      bal.innerHTML = '';
+      K.NATIONS.forEach(function (n) { var f = K.FX.filter(function (x) { return x.code === n; })[0];
+        bal.appendChild(h('div', { class: 'sp-b' + (n === shopNat ? ' on' : '') }, h('span', null, f.ko.replace(/\(.*\)/, '')), h('b', null, M.px(d.fxw[n] || 0)), h('em', null, n))); });
+      var a = +amt.value || 0;
+      quote.textContent = dir > 0 ? (a ? M.num(a) + ' LEVC → ' + M.px(E.quoteBuy(a, shopNat)) + ' ' + shopNat : '1 LEVC = ' + M.fx(K.fx(shopNat)) + ' ' + shopNat + ' · 현금 ' + M.levc(S.data.cash))
+                                  : (a ? M.px(a) + ' ' + shopNat + ' → ' + M.num(Math.round(E.quoteSell(a, shopNat))) + ' LEVC' : shopNat + ' 잔액 ' + M.px(d.fxw[shopNat] || 0));
+    }
+    amt.addEventListener('input', upd);
+    drawChips(); setDir(1); drawItems(); drawColl();
+    var tickU = function () { upd(); };
+    K.listeners.push(tickU); E.listeners.push(tickU);
+    return function () { K.listeners.splice(K.listeners.indexOf(tickU), 1); E.listeners.splice(E.listeners.indexOf(tickU), 1); };
   }
 
   /* ── 기록 ── */
   function logView(v) {
-    var d = S.data, list = h('div', { class: 'logs' }), news = h('div', { class: 'logs' });
+    var d = S.data, list = h('div', { class: 'logs' }), news = h('div', { class: 'logs' }), s = M.rec.stats(), w = worth();
+    v.appendChild(h('section', { class: 'card rc' }, h('div', { class: 'k' }, 'RECORDS · 기록'),
+      h('div', { class: 'w-grid rc-g' },
+        h('div', null, h('span', null, '최고 총 자산'), h('b', null, M.num(Math.round(Math.max(s.peak, w.total))))),
+        h('div', null, h('span', null, '연구 성공 · 실패'), h('b', null, s.rsOk + ' · ' + s.rsFail)),
+        h('div', null, h('span', null, '거래 횟수'), h('b', null, M.num(s.trades))),
+        h('div', null, h('span', null, '활성화 연속'), h('b', null, s.streak + '일 (최장 ' + s.best + ')')),
+        h('div', null, h('span', null, '일하기 보수'), h('b', null, M.num(s.workPay))),
+        h('div', null, h('span', null, '독점 수익 합계'), h('b', null, M.num(Math.round(s.monoIncome)) + ' LEVC')))));
+    var got = Object.keys(d.ach || {}).length;
+    v.appendChild(h('div', { class: 'sec' }, '업적 ' + got + ' / ' + M.rec.ACH.length));
+    var ag = h('div', { class: 'ach' }); v.appendChild(ag);
+    M.rec.ACH.forEach(function (a) { var t = d.ach && d.ach[a.id];
+      ag.appendChild(h('div', { class: 'ach-i' + (t ? ' on' : '') }, h('b', null, a.ko), h('span', null, a.d), t ? h('em', null, M.day(t)) : h('em', null, '잠김'))); });
     v.appendChild(h('div', { class: 'sec' }, '거래 기록')); v.appendChild(list);
     v.appendChild(h('div', { class: 'sec' }, '시장 소식')); v.appendChild(news);
     if (!d.log.length) list.appendChild(h('div', { class: 'empty' }, '기록이 없습니다.'));
     d.log.slice(0, 120).forEach(function (l) {
       var dt = new Date(l.t), when = (dt.getMonth() + 1) + '.' + dt.getDate() + ' ' + M.hms(l.t), what, amt;
       if (l.k === 'grant') { what = '시작 자금 지급'; amt = '+' + M.num(l.levc); }
-      else if (l.k === 'work') { what = '장치 활성화 보수'; amt = '+' + M.num(l.levc); }
+      else if (l.k === 'work') { var jj = M.JOBS.filter(function (x) { return x.id === (l.job || 'device'); })[0]; what = (jj ? jj.ko : '일') + ' 보수'; amt = '+' + M.num(l.levc); }
+      else if (l.k === 'fx') { what = '환전 ' + (l.levc < 0 ? 'LEVC → ' + l.cur + ' ' + M.px(l.local) : l.cur + ' ' + M.px(-l.local) + ' → LEVC'); amt = (l.levc < 0 ? '−' : '+') + M.num(Math.round(Math.abs(l.levc))); }
+      else if (l.k === 'item') { var it = M.econ.item(l.id); what = '특산품 ' + (it ? it.ko : l.id); amt = '−' + M.px(l.local) + ' ' + l.cur; }
+      else if (l.k === 'mono') { var cm = K.co(l.id); what = '독점 ' + (cm ? cm.ko : l.id) + ' · ' + M.px(l.local) + ' ' + l.cur; amt = '−' + M.num(Math.round(l.levc)); }
       else if (l.k === 'inv') { var ci = K.co(l.id); what = '투자 ' + (ci ? ci.ko : l.id) + ' ' + M.num(l.local) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = '−' + M.num(Math.round(l.levc)); }
       else if (l.k === 'invr') { var cr = K.co(l.id); what = '투자 결과 ' + (cr ? cr.ko : l.id) + ' · 투자금 ' + M.num(Math.round(l.paid)); amt = '+' + M.num(Math.round(l.levc)); }
       else { var c = K.co(l.id); what = (l.k === 'buy' ? '매수 ' : '매도 ') + (c ? c.ko : l.id) + ' ' + M.num(l.q) + '주 @ ' + M.px(l.px) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = (l.k === 'buy' ? '−' : '+') + M.num(Math.round(l.levc)); }

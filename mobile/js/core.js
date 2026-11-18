@@ -131,6 +131,7 @@
 
   /* ── 안내 띠 ── */
   M.toast = function (msg) {
+    [].forEach.call(document.querySelectorAll('.toast'), function (o) { o.remove(); });   // 알림은 한 번에 하나만 (겹치지 않게)
     var t = M.h('div', { class: 'toast' }, msg);
     document.body.appendChild(t);
     setTimeout(function () { t.classList.add('out'); }, 2200);
