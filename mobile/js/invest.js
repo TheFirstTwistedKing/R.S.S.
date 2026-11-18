@@ -49,7 +49,8 @@
     back = Math.round(back);
     s.active.splice(s.active.indexOf(a), 1);
     // 연구 성공(오름)이면 그 기업 주가가 크게 오름
-    var boost = up ? K.boost(a.id) : 0;
+    var boost = up ? K.boost(a.id) : -K.crash(a.id);
+    M.rec && M.rec.event('research', up);
     var r = { id: a.id, local: a.local, cur: a.cur, paid: a.paid, back: back, t: Date.now(), ok: up, boost: boost };
     s.hist.unshift(r); if (s.hist.length > 60) s.hist.pop();
     d.cash += back;
@@ -104,7 +105,7 @@
       h('div', { class: 'iv-co' }, c ? c.ko : r.id),
       h('div', { class: 'iv-res' }, h('span', null, '투자금'), h('b', null, M.levc(r.paid))),
       h('div', { class: 'iv-res' }, h('span', null, '돌려받은 금액'), h('b', null, M.levc(r.back))),
-      r.boost ? h('div', { class: 'iv-res' }, h('span', null, '주가'), h('b', { class: 'up' }, '급등 중 · 약 +' + Math.round(r.boost * 100) + '%')) : null,
+      r.boost ? h('div', { class: 'iv-res' }, h('span', null, '주가'), h('b', { class: r.boost > 0 ? 'up' : 'down' }, r.boost > 0 ? '급등 중 · 약 +' + Math.round(r.boost * 100) + '%' : '급락 중 · 약 −' + Math.round(-r.boost * 100) + '%')) : null,
       h('div', { class: 'iv-amt ' + (up ? 'up' : 'down') }, (gain >= 0 ? '+' : '−') + M.num(Math.abs(gain)), h('em', null, ' LEVC')),
       h('div', { class: 'iv-btns one' }, h('button', { class: 'btn buy', type: 'button', onclick: function () { el.classList.remove('in'); setTimeout(function () { el.remove(); }, 250); } }, '확인')));
     document.body.appendChild(el);

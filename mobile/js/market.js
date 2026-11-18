@@ -153,6 +153,14 @@
   K.change = function (a) { return (a.price / a.open0 - 1) * 100; };
   /* 연구 성공: 그 기업 주가가 크게 뜀 (일반 +35~70%, 고위험 +60~150%)
      몇 초에 걸쳐 오르고, 기준값도 함께 올려서 금방 원래 자리로 돌아가지 않게 함 */
+  /* 연구 실패: 그 기업 주가가 크게 떨어짐 (일반 −15~30%, 고위험 −30~55%) · 기준값도 함께 내림 */
+  K.crash = function (id) {
+    var c = K.co(id); if (!c) return 0;
+    var down = c.risky ? 0.3 + Math.random() * 0.25 : 0.15 + Math.random() * 0.15, lj = Math.log(1 - down);
+    c.jump = (c.jump || 0) + lj; c.anchor += lj * 0.8; c.hv = Math.min(6, c.hv + 3);
+    K.news.unshift({ t: Date.now(), m: c.ko + ', 연구 실패 발표 · 주가 급락', dir: -1, tag: c.ko, big: true }); if (K.news.length > 30) K.news.pop();
+    return down;
+  };
   K.boost = function (id) {
     var c = K.co(id); if (!c) return 0;
     var up = c.risky ? 0.6 + Math.random() * 0.9 : 0.35 + Math.random() * 0.35, lj = Math.log(1 + up);

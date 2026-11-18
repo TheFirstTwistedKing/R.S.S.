@@ -333,3 +333,21 @@
   .eco-note { display: none; }
   .eco-bottom { grid-template-columns: 1fr; padding: var(--s4); }
 }
+
+/* 경제 창 · 나라별 기업 주가 (열람 전용) */
+.eco-co-card { margin: var(--s3) var(--s6) 0; }
+.eco-co-card h4 { display: flex; align-items: center; gap: var(--s3); }
+.eco-back { margin-left: auto; height: 24px; padding: 0 var(--s2); border: 1px solid var(--line2); background: none; color: var(--muted); font: 600 11px/1 var(--f-ui); cursor: pointer; }
+.eco-cos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s5); }
+.eco-co { display: grid; grid-template-columns: minmax(0, 1fr) 56px auto 64px; gap: var(--s2); align-items: center; padding: 8px 4px; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); text-align: left; cursor: pointer; position: relative; }
+.eco-co:hover { background: var(--wash); }
+.eco-co.on { background: linear-gradient(to right, rgba(255, 176, 32, .16), rgba(255, 176, 32, .03)); }
+.eco-co.on::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.eco-cn { font: 600 13px/1.3 var(--f-ui); overflow: hidden; }
+.eco-cn em { display: block; font: 10px/1.3 var(--f-mono); font-style: normal; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eco-co.risky .eco-cn em { color: var(--accent); }
+.eco-csp { width: 56px; height: 20px; display: block; }
+.eco-cv { font: 12px/1 var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.eco-cc { font: 11px/1 var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 1280px) { .eco-cos { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .eco-co-card { margin: var(--s3) var(--s4) 0; } }
