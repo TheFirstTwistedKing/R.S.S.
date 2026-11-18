@@ -31,7 +31,7 @@
     { id: 'starlight', ko: '별빛 공방기업', cur: 'SD', base: 21800, vol: 2.2, sec: '공방 · 제작' },
     { id: 'hwanseong', ko: '환성감정소', cur: 'SD', base: 14200, vol: 1.6, sec: '감정 · 인증' },
     { id: 'crown', ko: 'C.R.O.W.N.', cur: 'SD', base: 33500, vol: 2.6, sec: '복합 기업' },
-    { id: 'osaek', ko: '오색단풍', cur: 'DEM', base: 18800, vol: 9, risky: true, sec: '복합 기업' },
+    { id: 'osaek', ko: '오색단풍', cur: 'DEM', base: 18800, vol: 9, risky: true, sec: '의료' },
     { id: 'ken', ko: '켄의 복사점', cur: 'DEM', base: 42.6, vol: 1.5, sec: '인쇄 · 복사' },
     { id: 'dp-build', ko: '단풍건설사', cur: 'DEM', base: 88.4, vol: 2.0, sec: '건설' },
     { id: 'ryoko', ko: '료코의 공방기업', cur: 'DEM', base: 156, vol: 2.1, sec: '공방 · 제작' },
