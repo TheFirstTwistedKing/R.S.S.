@@ -1,7 +1,7 @@
 {
   "name": "judgement-operation",
   "productName": "Judgement Operation",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "R.S.S. 인물 등록 문서 검토 · 승인 (관리자 전용)",
   "main": "main.js",
   "author": "R.S.S.",

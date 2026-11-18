@@ -12,6 +12,9 @@ APP_ID="${APP_ID:-org.rss.mobile}"; APP_NAME="${APP_NAME:-R.S.S. Mobile}"
 node -e "require('fs').writeFileSync('capacitor.config.json', JSON.stringify({ appId: process.argv[1], appName: process.argv[2], webDir: 'www', backgroundColor: process.argv[3], android: { backgroundColor: process.argv[3], allowMixedContent: false } }, null, 2) + '\n')" "$APP_ID" "$APP_NAME" "$BG"
 rm -rf www android
 cp -r "$WEB_SRC" www
+# 새 버전 알림: 공용 모듈 + 지금 버전
+cp ../apps/shared/update.js www/update.js
+printf 'window.APP_VERSION = "%s";\n' "$VNAME" > www/version.js
 npx cap add android
 R=android/app/src/main/res
 cp -r "$RES"/. "$R/"                                                  # 아이콘 · 시작 화면

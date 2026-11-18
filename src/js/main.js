@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var R = window.RSS, $ = R.$;
-  R.version = '3.4.0';
+  R.version = (window.rss && window.rss.version) || '';
   var MODS = { files: ['ARC-01', '문서 아카이브', 'Document archive'], graph: ['MOD-02', '관계도', 'Relation graph'], timeline: ['MOD-03', '타임라인', 'Timeline'], security: ['MOD-04', '보안 · 백업', 'Security · backup'], msg: ['MSG-01', '메신저', 'Messenger'], cctv: ['CCTV-01', 'CCTV 감시실', 'CCTV room'], economy: ['ECO-01', '경제 · 환율', 'Economy · FX'] };
   var destroy = null;
 
@@ -124,4 +124,6 @@
       Promise.all(['400 14px Pretendard', '800 14px Pretendard', '14px D2Coding', '700 14px D2Coding', '22px PixelCode'].map(function (f) { return document.fonts.load(f, f.indexOf('Pixel') >= 0 ? '0123456789*' : 'Aa가'); })).then(go, go);
     } else go();
   });
+  // 새 버전 알림: 인트로가 끝나 본 화면이 뜬 뒤에
+  if (window.RSSUpdate) window.RSSUpdate.check({ name: 'R.S.S.', current: R.version, accent: '#FFB020', ready: function () { var a = $('#app'); return a && !a.hidden; } });
 })();

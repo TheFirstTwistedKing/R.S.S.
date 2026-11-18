@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('rss', {
   platform: process.platform,
+  version: ipcRenderer.sendSync('app:version'),
   readVault: () => ipcRenderer.invoke('vault:read'),
   writeVault: (text) => ipcRenderer.invoke('vault:write', text),
   wipeVault: () => ipcRenderer.invoke('vault:wipe'),

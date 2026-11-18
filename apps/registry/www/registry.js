@@ -100,4 +100,5 @@
     });
   });
   write();
+  if (window.RSSUpdate) window.RSSUpdate.check({ name: 'Leviathan Registry', current: window.APP_VERSION, tag: 'registry', apk: 'LeviathanRegistry.apk', accent: '#C9483B', lift: 72 });
 })();
