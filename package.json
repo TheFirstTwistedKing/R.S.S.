@@ -1,7 +1,7 @@
 {
   "name": "rss-archive",
   "productName": "R.S.S.",
-  "version": "4.5.1",
+  "version": "4.6.0",
   "description": "R.S.S. 정보국 기밀 기록 관리 앱",
   "main": "main.js",
   "author": "R.S.S.",
@@ -28,6 +28,8 @@
       "main.js",
       "preload.js",
       "src/**/*",
+      "apps/shared/fb.js",
+      "apps/shared/schema.js",
       "package.json"
     ],
     "win": {

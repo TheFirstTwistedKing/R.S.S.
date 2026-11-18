@@ -1,0 +1,52 @@
+/* Leviathan Registry: 어두운 책상 위의 신청서 한 장. 바깥(책상)은 R.S.S. 처럼 검정 + 주황, 안(종이)은 미색 + 푸른 잉크 */
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--desk); color: #F3E8D2; font: 15px/1.5 var(--f-ui); }
+body { background: radial-gradient(120% 70% at 50% 0%, #241E16, var(--desk) 70%) fixed; }
+button { font: inherit; cursor: pointer; }
+.bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 24px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 24px 12px; background: rgba(12, 10, 8, .92); border-bottom: 1px solid rgba(255, 176, 32, .34); backdrop-filter: blur(6px); }
+.brand { font: 800 17px/1.1 var(--f-ui); letter-spacing: .16em; color: #F3E8D2; white-space: nowrap; }
+.brand b { color: #FFB020; }
+.brand span { display: block; margin-top: 4px; font: 10px/1 var(--f-mono); letter-spacing: .26em; color: #A69B84; }
+.nav { margin-left: auto; display: flex; gap: 6px; }
+.nav button { height: 34px; padding: 0 14px; border: 1px solid rgba(255, 176, 32, .34); background: none; color: #A69B84; font: 600 13px/1 var(--f-ui); }
+.nav button.on { background: #FFB020; border-color: #FFB020; color: #1A1206; }
+#main { padding: 40px 16px 140px; }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 24px calc(env(safe-area-inset-bottom, 0px) + 12px); background: #0C0A08; border-top: 1px solid rgba(255, 176, 32, .34); }
+.dock[hidden] { display: none; }
+.dock .info { font: 12px/1.4 var(--f-mono); color: #A69B84; }
+.dock .info b { color: #F3E8D2; font-weight: 400; }
+.dock .sp { flex: 1; }
+.btn { height: 46px; padding: 0 22px; border: 1px solid rgba(255, 176, 32, .5); background: none; color: #F3E8D2; font: 700 14px/1 var(--f-ui); letter-spacing: .06em;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.btn.go { background: #FFB020; border-color: #FFB020; color: #1A1206; }
+.btn:disabled { opacity: .45; cursor: default; }
+.msg { max-width: 860px; margin: 0 auto 16px; padding: 12px 16px; border-left: 3px solid #FFB020; background: rgba(255, 176, 32, .08); font: 13px/1.6 var(--f-ui); color: #F3E8D2; }
+.msg.bad { border-color: #E0412B; background: rgba(224, 65, 43, .1); }
+/* 내 제출 현황 */
+.mine { max-width: 860px; margin: 0 auto; }
+.mine h2 { font: 800 20px/1.2 var(--f-ui); margin: 0 0 6px; }
+.mine p.d { margin: 0 0 18px; color: #A69B84; font-size: 13px; }
+.sub { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 14px 16px; margin-bottom: 8px; background: #1B1712; border: 1px solid rgba(255, 176, 32, .2); cursor: pointer; text-align: left; color: inherit; width: 100%; }
+.sub:hover { border-color: rgba(255, 176, 32, .5); }
+.sub b { font: 700 16px/1.3 var(--f-ui); }
+.sub span { display: block; margin-top: 3px; font: 11px/1.4 var(--f-mono); color: #A69B84; }
+.st { font: 700 11px/1 var(--f-mono); letter-spacing: .14em; padding: 6px 8px; border: 1px solid; }
+.st.pending { color: #E3C46A; } .st.approved { color: #FFB020; background: rgba(255, 176, 32, .12); } .st.rejected { color: #E0412B; }
+.reason { grid-column: 1 / -1; font: 13px/1.5 var(--f-ui); color: #E8B4AA; }
+.back { margin: 0 auto 16px; display: block; max-width: 860px; }
+.empty { color: #6E6654; font-size: 14px; padding: 20px 0; }
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, .66); padding: 16px; }
+.modal .box { max-width: 420px; width: 100%; padding: 22px; background: #15120E; border: 1px solid #FFB020; }
+.modal h3 { margin: 0 0 8px; font: 800 18px/1.3 var(--f-ui); }
+.modal p { margin: 0 0 18px; color: #A69B84; font-size: 14px; line-height: 1.6; }
+.modal .row { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 720px) {
+  .bar { gap: 12px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px; flex-wrap: wrap; }
+  .brand { font-size: 14px; } .brand span { display: none; }
+  .nav button { padding: 0 10px; font-size: 12px; }
+  #main { padding: 28px 8px 150px; }
+  .dock { padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 10px); flex-wrap: wrap; }
+  .dock .sp { display: none; } .dock .btn { flex: 1; }
+}
+.btn { white-space: nowrap; }
+@media (max-width: 720px) { .dock .info { display: none; } .dock .btn { padding: 0 12px; font-size: 13px; } }

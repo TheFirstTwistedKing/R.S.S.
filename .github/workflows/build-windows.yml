@@ -4,7 +4,7 @@ name: Windows EXE 빌드
 on:
   push:
     branches: [main]
-    paths-ignore: ['**.md', 'mobile/**', 'android-app/**', '.github/workflows/android-apk.yml']
+    paths-ignore: ['**.md', 'mobile/**', 'android-app/**', '.github/workflows/android-apk.yml', 'apps/registry/**', 'apps/oplink/**', 'apps/assemble.sh', '.github/workflows/apps.yml']
   pull_request:
     branches: [main]
   workflow_dispatch:

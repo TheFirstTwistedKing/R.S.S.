@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com">
+<meta name="theme-color" content="#14110D">
+<title>Leviathan Registry</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="shared/paper.css">
+<link rel="stylesheet" href="registry.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><b>LEVIATHAN</b> REGISTRY<span>R.S.S. 인물 등록청</span></div>
+  <nav class="nav">
+    <button type="button" data-t="write" class="on">신청서 작성</button>
+    <button type="button" data-t="mine">내 제출 현황</button>
+  </nav>
+</header>
+<main id="main"></main>
+<div id="dock" class="dock"></div>
+<script src="shared/fb.js"></script>
+<script src="shared/schema.js"></script>
+<script src="shared/paper.js"></script>
+<script src="registry.js"></script>
+</body>
+</html>
