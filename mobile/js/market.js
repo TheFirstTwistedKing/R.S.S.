@@ -41,7 +41,7 @@
     { id: 'ester', ko: '에스터 공방기업', cur: 'MEC', base: 112.5, vol: 2.1, sec: '공방 · 제작' },
     { id: 'hwanseo', ko: '환서조선', cur: 'MEC', base: 78.2, vol: 2.2, sec: '조선' },
     { id: 'grace', ko: '그레이스 물류산업', cur: 'MEC', base: 64.4, vol: 1.7, sec: '물류' },
-    { id: 'memory', ko: '메모리 디벨롭 스튜디오', cur: 'EOM', base: 268000, vol: 10, risky: true, sec: '콘텐츠 개발' },
+    { id: 'memory', ko: '메모리 디벨롭 스튜디오', cur: 'EOM', base: 268000, vol: 10, risky: true, sec: '메모리 기술 개발' },
     { id: 'moon-tour', ko: '달 관광사', cur: 'EOM', base: 4180, vol: 1.9, sec: '관광' },
     { id: 'wolgwang', ko: '월광 공방기업', cur: 'EOM', base: 12650, vol: 2.2, sec: '공방 · 제작' },
     { id: 'bloodyus', ko: '블러디어스 공방기업', cur: 'EOM', base: 9870, vol: 2.4, sec: '공방 · 제작' }
