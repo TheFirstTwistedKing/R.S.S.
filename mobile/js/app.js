@@ -275,6 +275,14 @@
     if (sheet) sheet();
     var price = h('div', { class: 'd-p' }), sub = h('div', { class: 'd-s' }), cv = h('canvas', { class: 'd-chart' });
     var holdEl = h('div', { class: 'd-hold' }), qty = h('input', { class: 'inp', type: 'number', inputmode: 'numeric', min: '1', step: '1', value: '1' });
+    // 독점 취소: 실수로 누르지 않게 두 번 눌러야 함 (3초 안에)
+    var unArm = 0, unBtn = h('button', { class: 'btn mono off', type: 'button', onclick: function () {
+      if (!unArm) { unArm = setTimeout(function () { unArm = 0; unBtn.classList.remove('arm'); unBtn.textContent = '독점 취소'; }, 3000); unBtn.classList.add('arm'); unBtn.textContent = '한 번 더 누르면 취소'; M.sound.tap(); return; }
+      clearTimeout(unArm); unArm = 0; unBtn.classList.remove('arm');
+      var got = M.econ.unmonoRefund(c), err = M.econ.unmonopolize(id);
+      if (err) { M.sound.deny(); return M.toast(err); }
+      M.sound.sell(); M.toast(c.ko + ' 독점 취소 · +' + M.levc(got)); upd();
+    } }, '독점 취소');
     var est = h('div', { class: 'd-est' }), monoEl = h('div', { class: 'd-mono' }), monoBtn = h('button', { class: 'btn mono', type: 'button', onclick: function () { var err = M.econ.monopolize(id); if (err) { M.sound.deny(); return M.toast(err); } M.sound.power(); M.toast(c.ko + ' 독점 완료'); upd(); } }, '기업 독점');
     var bBuy = h('button', { class: 'btn buy', type: 'button', onclick: function () { trade(1); } }, '매수');
     var bSell = h('button', { class: 'btn sell', type: 'button', onclick: function () { trade(-1); } }, '매도');
@@ -336,6 +344,9 @@
         monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 가치'), h('b', null, M.px(ml) + ' ' + c.cur + ' ≈ ' + M.levc(mv))));
         monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '독점 수익 (1분마다)'), h('b', { class: 'up' }, '+' + M.px(ml * M.econ.MONO_YIELD) + ' ' + c.cur)));
         monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '지금까지 받은 수익'), h('b', null, M.px(own.earned) + ' ' + c.cur)));
+        var back = M.econ.unmonoRefund(c);
+        monoEl.appendChild(h('div', { class: 'dm-r' }, h('span', null, '취소하면 돌려받는 돈 (수수료 10%)'), h('b', { class: back >= own.paid ? 'up' : 'down' }, M.levc(back))));
+        monoEl.appendChild(unBtn); if (!unArm) unBtn.textContent = '독점 취소';
       } else {
         monoEl.classList.remove('own');
         monoEl.appendChild(h('div', { class: 'dm-h' }, h('span', { class: 'dm-k' }, 'MONOPOLY'), h('b', null, '기업 독점')));
@@ -463,6 +474,7 @@
       else if (l.k === 'fx') { what = '환전 ' + (l.levc < 0 ? 'LEVC → ' + l.cur + ' ' + M.px(l.local) : l.cur + ' ' + M.px(-l.local) + ' → LEVC'); amt = (l.levc < 0 ? '−' : '+') + M.num(Math.round(Math.abs(l.levc))); }
       else if (l.k === 'item') { var it = M.econ.item(l.id); what = '특산품 ' + (it ? it.ko : l.id); amt = '−' + M.px(l.local) + ' ' + l.cur; }
       else if (l.k === 'mono') { var cm = K.co(l.id); what = '독점 ' + (cm ? cm.ko : l.id) + ' · ' + M.px(l.local) + ' ' + l.cur; amt = '−' + M.num(Math.round(l.levc)); }
+      else if (l.k === 'unmono') { var cu = K.co(l.id); what = '독점 취소 ' + (cu ? cu.ko : l.id) + ' · 수수료 10%'; amt = '+' + M.num(Math.round(l.levc)); }
       else if (l.k === 'inv') { var ci = K.co(l.id); what = '투자 ' + (ci ? ci.ko : l.id) + ' ' + M.num(l.local) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = '−' + M.num(Math.round(l.levc)); }
       else if (l.k === 'invr') { var cr = K.co(l.id); what = '투자 결과 ' + (cr ? cr.ko : l.id) + ' · 투자금 ' + M.num(Math.round(l.paid)); amt = '+' + M.num(Math.round(l.levc)); }
       else { var c = K.co(l.id); what = (l.k === 'buy' ? '매수 ' : '매도 ') + (c ? c.ko : l.id) + ' ' + M.num(l.q) + '주 @ ' + M.px(l.px) + ' ' + l.cur + ' (1 LEVC = ' + M.fx(l.fx) + ')'; amt = (l.k === 'buy' ? '−' : '+') + M.num(Math.round(l.levc)); }

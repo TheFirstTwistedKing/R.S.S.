@@ -1,6 +1,6 @@
 {
   "name": "rss-mobile-android",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": true,
   "description": "R.S.S. Mobile 안드로이드 앱 (mobile/ 웹앱을 Capacitor 로 감쌈)",
   "dependencies": {
