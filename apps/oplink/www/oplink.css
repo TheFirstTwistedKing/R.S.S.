@@ -1,4 +1,4 @@
-/* Operation : L — 관리자 한 명을 위한 검토실. R.S.S. 단말기처럼 검정 + 주황, 서류만 미색 종이 */
+/* Judgement Operation — 관리자 한 명을 위한 검토실. R.S.S. 단말기처럼 검정 + 주황, 서류만 미색 종이 */
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; background: #050607; color: #F3E8D2; font: 15px/1.5 var(--f-ui); }
 button { font: inherit; cursor: pointer; color: inherit; }

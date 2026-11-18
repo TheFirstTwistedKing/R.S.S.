@@ -1,6 +1,6 @@
 /* Leviathan Registry: 인물 등록 신청서를 쓰고 R.S.S. 에 제출
    - 쓰는 중인 내용은 이 기기에 자동 저장 (앱을 꺼도 이어서 쓸 수 있음)
-   - 제출: 익명 로그인(기기마다 하나) → Firestore submissions 에 '대기' 로 저장 → Operation : L 에서 검토
+   - 제출: 익명 로그인(기기마다 하나) → Firestore submissions 에 '대기' 로 저장 → Judgement Operation 에서 검토
    - 내 제출 현황: 이 기기에서 낸 문서의 대기 · 승인 · 반려(사유) */
 (function () {
   'use strict';
@@ -57,7 +57,7 @@
           localStorage.removeItem(DRAFT);
           draft = { _no: 'LR-' + Date.now().toString(36).toUpperCase().slice(-6) };
           send.textContent = '제출 완료';
-          flash('제출했습니다. Operation : L 에서 검토한 뒤 승인되면 R.S.S. 아카이브에 올라갑니다. 다음 신청서는 "새 신청서" 를 누르십시오.');
+          flash('제출했습니다. Judgement Operation 에서 검토한 뒤 승인되면 R.S.S. 아카이브에 올라갑니다. 다음 신청서는 "새 신청서" 를 누르십시오.');
         }, function (e) { send.disabled = false; send.textContent = '서명하고 제출'; flash('제출하지 못했습니다 · ' + e.message, true); });
       });
     }

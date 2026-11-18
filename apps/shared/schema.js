@@ -1,4 +1,4 @@
-/* 인물 문서 작성 항목 (Leviathan Registry 작성 · Operation : L 검토 · R.S.S. 아카이브 표시가 모두 이 정의를 씀)
+/* 인물 문서 작성 항목 (Leviathan Registry 작성 · Judgement Operation 검토 · R.S.S. 아카이브 표시가 모두 이 정의를 씀)
    type: text(기본) · long(여러 줄) · nation(출신 국가) · clr(보안 등급) · status(상태) · portrait · stats · timeline · rels · sign
    req: 필수 */
 (function (root) {

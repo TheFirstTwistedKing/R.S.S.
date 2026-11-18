@@ -1,4 +1,4 @@
-/* 종이 서류 만들기: 작성용(Registry) · 읽기용(Operation : L) 모두 같은 항목 정의(schema.js)로 그림 */
+/* 종이 서류 만들기: 작성용(Registry) · 읽기용(Judgement Operation) 모두 같은 항목 정의(schema.js)로 그림 */
 (function (root) {
   'use strict';
   var SC = root.RSSSchema;

@@ -1,7 +1,7 @@
-name: Leviathan Registry · Operation L 빌드
+name: Leviathan Registry · Judgement Operation 빌드
 
 # apps/ 의 두 앱을 Windows EXE(설치형 · 포터블)와 안드로이드 APK 로 만듦
-# PR: 빌드만 확인 / main 병합: Releases 의 'registry' · 'operation-l' 항목에 올림 (항상 같은 주소)
+# PR: 빌드만 확인 / main 병합: Releases 의 'registry' · 'judgement-operation' 항목에 올림 (항상 같은 주소)
 on:
   push:
     branches: [main]
@@ -66,9 +66,9 @@ jobs:
             file: LeviathanRegistry.apk
             bg: '#14110D'
           - app: oplink
-            id: org.rss.operationl
-            name: 'Operation : L'
-            file: OperationL.apk
+            id: org.rss.judgement
+            name: 'Judgement Operation'
+            file: JudgementOperation.apk
             bg: '#050607'
     steps:
       - uses: actions/checkout@v4
@@ -132,12 +132,12 @@ jobs:
             ## Leviathan Registry — 인물 등록 신청서 작성 · 제출
             - **LeviathanRegistry-Setup.exe** (Windows 설치형) · **LeviathanRegistry-Portable.exe** (설치 없이 실행)
             - **LeviathanRegistry.apk** (안드로이드 · 처음 한 번 "출처를 알 수 없는 앱 설치 허용")
-            제출한 문서는 Operation : L 에서 검토하고, 승인되면 R.S.S. 아카이브에 올라갑니다.
-      - name: Operation L 올리기
+            제출한 문서는 Judgement Operation 에서 검토하고, 승인되면 R.S.S. 아카이브에 올라갑니다.
+      - name: Judgement Operation 올리기
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: operation-l
-          name: 'Operation : L'
+          tag_name: judgement-operation
+          name: 'Judgement Operation'
           target_commitish: ${{ github.sha }}
           make_latest: false
           overwrite_files: true
@@ -145,7 +145,7 @@ jobs:
             dl/win-oplink/*.exe
             dl/apk-oplink/*.apk
           body: |
-            ## Operation : L — 인물 등록 문서 검토 · 승인 (관리자 전용)
-            - **OperationL-Setup.exe** · **OperationL-Portable.exe** (Windows)
-            - **OperationL.apk** (안드로이드)
+            ## Judgement Operation — 인물 등록 문서 검토 · 승인 (관리자 전용)
+            - **JudgementOperation-Setup.exe** · **JudgementOperation-Portable.exe** (Windows)
+            - **JudgementOperation.apk** (안드로이드)
             관리자 계정(이메일 · 비밀번호)으로 로그인합니다. 승인 · 반려 권한은 Firestore 보안 규칙에 적힌 관리자 계정에만 있습니다.

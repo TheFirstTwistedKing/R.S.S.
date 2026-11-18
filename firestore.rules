@@ -1,6 +1,6 @@
 rules_version = '2';
 // Firestore 보안 규칙 (Firebase 콘솔 → Firestore Database → 규칙 에 붙여 넣기)
-// OWNER_UID 를 관리자 계정의 UID 로 바꿔야 함. Operation : L 에 로그인하면 UID 가 채워진 전문을 보여 주고 복사할 수 있음
+// OWNER_UID 를 관리자 계정의 UID 로 바꿔야 함. Judgement Operation 에 로그인하면 UID 가 채워진 전문을 보여 주고 복사할 수 있음
 service cloud.firestore {
   match /databases/{database}/documents {
     function isOwner() { return request.auth != null && request.auth.uid == 'OWNER_UID'; }
