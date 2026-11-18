@@ -90,7 +90,9 @@
     sec('현재 목표', d.goal);
     if (d.secret && String(d.secret).trim()) body.push('[비밀]\n||' + String(d.secret).trim() + '||');
     if (d.rels && d.rels.length) body.push('[관계]\n' + d.rels.filter(function (r) { return r[0]; }).map(function (r) { return r[0] + ' — ' + (r[1] || '') + (r[2] ? ' (' + r[2] + ')' : ''); }).join('\n'));
-    sec('대표 대사', d.quote ? '“' + d.quote + '”' : '');
+    /* 사용자가 따옴표까지 적었으면 떼고 한 번만 감쌈 */
+    var q = String(d.quote || '').trim().replace(/^["“”'‘’「『]+\s*/, '').replace(/\s*["“”'‘’」』]+$/, '');
+    sec('대표 대사', q ? '“' + q + '”' : '');
     return {
       id: 'reg-' + doc.id, type: 'character', no: no, name: d.name || '이름 없음', alias: d.code || '',
       clearance: Math.max(0, CLR.indexOf(d.clr)), status: d.status || '',
