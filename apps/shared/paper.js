@@ -88,13 +88,15 @@
           opts.forEach(function (o) { el.appendChild(h('button', { type: 'button', class: data[f.k] === o ? 'on' : '', onclick: function () { data[f.k] = o; [].forEach.call(el.children, function (b) { b.classList.toggle('on', b.textContent === o); }); pen(); wrap.classList.remove('pp-bad'); save(); } }, o)); });
           grid.appendChild(wrap); return;
         } else if (f.type === 'stats') {
-          data.stats = data.stats || SC.STATS.map(function () { return 5; });
+          /* 예전 6항목 임시 저장본은 겹치는 항목(근력 · 민첩 · 지능)만 옮기고 나머지는 5 */
+          var prev = SC.statsOf(data.stats) || {}; data.stats = {};
+          SC.STATS.forEach(function (s) { data.stats[s] = prev[s] || 5; });
           el = h('div', { class: 'pp-stats' });
           wrap = h('div', { class: 'pp-f', 'data-k': f.k }, wrap.firstChild, el);
-          SC.STATS.forEach(function (s, i) {
-            var dots = h('span', { class: 'pp-dots' }), val = h('b', null, String(data.stats[i]));
-            for (var n = 1; n <= 10; n++) (function (n) { var d = h('i', { style: '--r:' + ((n * 37) % 11 - 5) + 'deg', onclick: function () { data.stats[i] = n; paint(); pen(); save(); } }); dots.appendChild(d); })(n);
-            function paint() { [].forEach.call(dots.children, function (d, j) { d.classList.toggle('on', j < data.stats[i]); }); val.textContent = String(data.stats[i]); }
+          SC.STATS.forEach(function (s) {
+            var dots = h('span', { class: 'pp-dots' }), val = h('b', null, String(data.stats[s]));
+            for (var n = 1; n <= 10; n++) (function (n) { var d = h('i', { style: '--r:' + ((n * 37) % 11 - 5) + 'deg', onclick: function () { data.stats[s] = n; paint(); pen(); save(); } }); dots.appendChild(d); })(n);
+            function paint() { [].forEach.call(dots.children, function (d, j) { d.classList.toggle('on', j < data.stats[s]); }); val.textContent = String(data.stats[s]); }
             paint(); el.appendChild(h('div', { class: 'pp-stat' }, h('span', null, s), dots, val));
           });
           grid.appendChild(wrap); return;
@@ -177,7 +179,7 @@
         var v = d[f.k];
         if (f.type === 'portrait') wrap.appendChild(h('div', { class: 'pp-photo' }, h('div', { class: 'pp-frame' }, portrait ? h('img', { src: portrait, alt: '초상' }) : h('em', null, '초상 없음'))));
         else if (f.type === 'sign') wrap.appendChild(h('div', { class: 'pp-sign' }, sign ? h('img', { src: sign, alt: '서명' }) : h('em', null, '서명 없음')));
-        else if (f.type === 'stats') { var st = h('div', { class: 'pp-stats' }); SC.STATS.forEach(function (s, i) { var dots = h('span', { class: 'pp-dots' }); for (var n = 1; n <= 10; n++) dots.appendChild(h('i', { class: n <= ((v || [])[i] || 0) ? 'on' : '', style: '--r:' + ((n * 37) % 11 - 5) + 'deg' })); st.appendChild(h('div', { class: 'pp-stat' }, h('span', null, s), dots, h('b', null, String((v || [])[i] || 0)))); }); wrap.appendChild(st); }
+        else if (f.type === 'stats') { var st = h('div', { class: 'pp-stats' }), so = SC.statsOf(v) || {}; Object.keys(so).forEach(function (s) { var dots = h('span', { class: 'pp-dots' }); for (var n = 1; n <= 10; n++) dots.appendChild(h('i', { class: n <= so[s] ? 'on' : '', style: '--r:' + ((n * 37) % 11 - 5) + 'deg' })); st.appendChild(h('div', { class: 'pp-stat' }, h('span', null, s), dots, h('b', null, String(so[s])))); }); wrap.appendChild(st); }
         else if (f.type === 'timeline' || f.type === 'rels') {
           var rows = (v || []).filter(function (r) { return r.some(function (x) { return x && String(x).trim(); }); });
           wrap.appendChild(h('div', { class: 'pp-v long' + (rows.length ? '' : ' empty') }, rows.length ? rows.map(function (r) { return f.type === 'timeline' ? (r[0] || '') + '   ' + (r[1] || '') : r[0] + ' — ' + (r[1] || '') + (r[2] ? ' (' + r[2] + ')' : ''); }).join('\n') : '적지 않음'));

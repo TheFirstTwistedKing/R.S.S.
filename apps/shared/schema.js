@@ -12,7 +12,15 @@
   ];
   var CLR = ['공개', '대외비', '기밀', '극비'];
   var STATUS = ['활동', '잠적', '구금', '사망', '불명'];
-  var STATS = ['근력', '민첩', '지능', '통솔', '사격', '첩보'];
+  var STATS = ['근력', '민첩', '건강', '지능', '지혜', '매력', '카리스마', '전투 센스'];
+  var STATS_V1 = ['근력', '민첩', '지능', '통솔', '사격', '첩보']; /* 예전 신청서(배열로 저장) 읽기용 */
+  /* 능력치를 {이름: 값} 으로. 예전 배열 신청서는 예전 이름 그대로 보여 줌 */
+  function statsOf(v) {
+    if (!v) return null;
+    var o = {};
+    if (Array.isArray(v)) { (v.length === 6 ? STATS_V1 : STATS).forEach(function (s, i) { if (v[i] != null) o[s] = +v[i] || 0; }); return o; }
+    Object.keys(v).forEach(function (k) { o[k] = +v[k] || 0; }); return o;
+  }
   var SECTIONS = [
     { id: 'basic', no: '01', t: '기본 정보', f: [
       { k: 'name', t: '이름 (본명)', req: 1, ph: '예) 한서윤' },
@@ -74,7 +82,7 @@
     add('키', d.height); add('체중', d.weight); add('체형', d.build); add('머리', d.hair); add('눈', d.eyes); add('피부', d.skin);
     add('성격', d.keywords); add('좋아하는 것', d.likes); add('싫어하는 것', d.dislikes); add('말버릇', d.habit); add('두려워하는 것', d.fear);
     add('전문 분야', d.field); add('상징', d.symbol);
-    if (d.stats) add('능력치', STATS.map(function (s, i) { return s + ' ' + (d.stats[i] || 0); }).join(' · '));
+    var so = statsOf(d.stats); if (so) add('능력치', Object.keys(so).map(function (s) { return s + ' ' + so[s]; }).join(' · '));
     var sec = function (title, v) { if (v && String(v).trim()) body.push('[' + title + ']\n' + String(v).trim()); };
     sec('특징', d.marks); sec('복장', d.outfit); sec('장점', d.merits); sec('단점', d.flaws); sec('신념', d.belief);
     sec('특기', d.skills); sec('장비', d.gear); sec('출생과 성장', d.upbringing);
@@ -93,5 +101,5 @@
       created: doc.approvedAt || doc.createdAt || Date.now(), updated: doc.approvedAt || Date.now()
     };
   }
-  root.RSSSchema = { NATIONS: NATIONS, CLR: CLR, STATUS: STATUS, STATS: STATS, SECTIONS: SECTIONS, all: all, toEntity: toEntity };
+  root.RSSSchema = { NATIONS: NATIONS, CLR: CLR, STATUS: STATUS, STATS: STATS, statsOf: statsOf, SECTIONS: SECTIONS, all: all, toEntity: toEntity };
 })(window);
