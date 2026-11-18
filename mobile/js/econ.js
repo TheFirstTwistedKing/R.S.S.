@@ -23,7 +23,7 @@
     { id: 'sd-seal', cur: 'SD', ko: '환성감정소 감정 인장', by: '환성감정소', price: 72000 },
     { id: 'sd-badge', cur: 'SD', ko: 'STAR DEFENCE PROJECT 기념 휘장', by: 'STAR DEFENCE PROJECT', price: 155000 },
     { id: 'sd-crown', cur: 'SD', ko: 'C.R.O.W.N. 회원 왕관 배지', by: 'C.R.O.W.N.', price: 280000000 },
-    { id: 'dem-leaf', cur: 'DEM', ko: '오색단풍 단풍잎 책갈피', by: '오색단풍', price: 128 },
+    { id: 'dem-leaf', cur: 'DEM', ko: '오색단풍 응급 의료 키트', by: '오색단풍', price: 128 },
     { id: 'dem-card', cur: 'DEM', ko: '켄의 복사점 한정 인쇄 엽서', by: '켄의 복사점', price: 18 },
     { id: 'dem-box', cur: 'DEM', ko: '료코 공방 칠기 상자', by: '료코의 공방기업', price: 2650 },
     { id: 'dem-house', cur: 'DEM', ko: '단풍건설사 단풍 정원 별채', by: '단풍건설사', price: 14800000 },
