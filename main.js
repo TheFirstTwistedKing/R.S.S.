@@ -117,6 +117,7 @@ function createWindow() {
   });
 }
 
+ipcMain.on('app:version', (e) => { e.returnValue = app.getVersion(); });
 ipcMain.handle('vault:read', () => {
   try { return fs.readFileSync(vaultPath(), 'utf8'); } catch (_) { return null; }
 });

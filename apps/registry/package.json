@@ -1,7 +1,7 @@
 {
   "name": "leviathan-registry",
   "productName": "Leviathan Registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "R.S.S. 인물 등록 신청서 작성 · 제출",
   "main": "main.js",
   "author": "R.S.S.",

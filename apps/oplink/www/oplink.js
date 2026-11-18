@@ -180,4 +180,5 @@
   }
 
   if (auth.s) home(); else login();
+  if (window.RSSUpdate) window.RSSUpdate.check({ name: 'Judgement Operation', current: window.APP_VERSION, tag: 'judgement-operation', apk: 'JudgementOperation.apk', accent: '#FFB020' });
 })();

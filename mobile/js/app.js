@@ -482,4 +482,6 @@
   // 안드로이드 앱(Capacitor)은 파일이 앱 안에 들어 있어 필요 없음 · 웹으로 열 때만 오프라인 보관
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) navigator.serviceWorker.register('sw.js').catch(function () {});
   lock();
+  // 새 버전 알림: 잠금 해제 · 시작 연출이 끝나 본 화면이 뜬 뒤에
+  if (window.RSSUpdate) window.RSSUpdate.check({ name: 'R.S.S. Mobile', current: window.APP_VERSION, tag: 'mobile', apk: 'RSS-Mobile.apk', accent: '#FFB020', lift: 64, ready: function () { return !!document.querySelector('#app header.top'); } });
 })();

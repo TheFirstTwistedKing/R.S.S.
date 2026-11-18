@@ -5,10 +5,10 @@ name: 안드로이드 APK 빌드
 on:
   push:
     branches: [main]
-    paths: ['mobile/**', 'android-app/**', 'build/icon.png', '.github/workflows/android-apk.yml']
+    paths: ['mobile/**', 'android-app/**', 'apps/shared/update.js', 'build/icon.png', '.github/workflows/android-apk.yml']
   pull_request:
     branches: [main]
-    paths: ['mobile/**', 'android-app/**', 'build/icon.png', '.github/workflows/android-apk.yml']
+    paths: ['mobile/**', 'android-app/**', 'apps/shared/update.js', 'build/icon.png', '.github/workflows/android-apk.yml']
   workflow_dispatch:
 
 permissions:
@@ -35,6 +35,9 @@ jobs:
           java-version: 17
       - name: Capacitor 설치
         run: npm ci
+      - name: 버전 읽기
+        id: ver
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: 안드로이드 프로젝트 준비 (아이콘 · 시작 화면 · 세로 고정 · 버전)
         run: bash prepare.sh ${{ github.run_number }}
       - name: APK 빌드
@@ -57,7 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mobile
-          name: R.S.S. Mobile (Android)
+          name: R.S.S. Mobile v${{ steps.ver.outputs.v }} (Android)
           target_commitish: ${{ github.sha }}
           make_latest: false
           overwrite_files: true

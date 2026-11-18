@@ -114,6 +114,15 @@ jobs:
     needs: [win, apk]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: apps
+      # 릴리즈 제목에 버전을 넣음 (앱의 새 버전 알림이 이 제목에서 버전을 읽음)
+      - name: 버전 읽기
+        id: ver
+        run: |
+          echo "registry=$(node -p "require('./apps/registry/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "oplink=$(node -p "require('./apps/oplink/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           path: dl
@@ -121,7 +130,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: registry
-          name: Leviathan Registry
+          name: Leviathan Registry v${{ steps.ver.outputs.registry }}
           target_commitish: ${{ github.sha }}
           make_latest: false
           overwrite_files: true
@@ -137,7 +146,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: judgement-operation
-          name: 'Judgement Operation'
+          name: Judgement Operation v${{ steps.ver.outputs.oplink }}
           target_commitish: ${{ github.sha }}
           make_latest: false
           overwrite_files: true
