@@ -1,0 +1,151 @@
+name: Leviathan Registry · Operation L 빌드
+
+# apps/ 의 두 앱을 Windows EXE(설치형 · 포터블)와 안드로이드 APK 로 만듦
+# PR: 빌드만 확인 / main 병합: Releases 의 'registry' · 'operation-l' 항목에 올림 (항상 같은 주소)
+on:
+  push:
+    branches: [main]
+    paths: ['apps/**', 'android-app/**', 'src/fonts/**', '.github/workflows/apps.yml']
+  pull_request:
+    branches: [main]
+    paths: ['apps/**', 'android-app/**', 'src/fonts/**', '.github/workflows/apps.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apps-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  win:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        app: [registry, oplink]
+    # 저장소 이름이 점(.)으로 끝나 Windows 기본 작업 폴더를 못 만들므로 C:\rss 에서 빌드
+    defaults:
+      run:
+        working-directory: C:\rss
+        shell: bash
+    steps:
+      - name: 소스 받기
+        working-directory: C:\
+        run: |
+          git init -q /c/rss
+          cd /c/rss
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "${{ github.event.pull_request.head.sha || github.sha }}"
+          git checkout -q FETCH_HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 의존성 설치
+        run: npm ci
+      - name: 화면 파일 모으기
+        run: bash apps/assemble.sh ${{ matrix.app }}
+      - name: EXE 빌드
+        run: npx electron-builder --projectDir apps/${{ matrix.app }} --win nsis portable --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win-${{ matrix.app }}
+          path: C:\rss\apps\${{ matrix.app }}\dist\*.exe
+          if-no-files-found: error
+
+  apk:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: registry
+            id: org.rss.registry
+            name: Leviathan Registry
+            file: LeviathanRegistry.apk
+            bg: '#14110D'
+          - app: oplink
+            id: org.rss.operationl
+            name: 'Operation : L'
+            file: OperationL.apk
+            bg: '#050607'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: 화면 파일 모으기
+        run: bash apps/assemble.sh ${{ matrix.app }}
+      - name: Capacitor 설치
+        working-directory: android-app
+        run: npm ci
+      - name: 안드로이드 프로젝트 준비
+        working-directory: android-app
+        env:
+          WEB_SRC: ../apps/${{ matrix.app }}/web
+          RES: ../apps/${{ matrix.app }}/android-res
+          APP_ID: ${{ matrix.id }}
+          APP_NAME: ${{ matrix.name }}
+          BG: ${{ matrix.bg }}
+        run: VNAME="$(node -p "require('../apps/${{ matrix.app }}/package.json').version")" bash prepare.sh ${{ github.run_number }}
+      - name: APK 빌드
+        working-directory: android-app/android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: 서명 키 확인 · 이름 정리
+        working-directory: android-app
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk "${{ matrix.file }}"
+          want=$(keytool -list -v -keystore debug.keystore -storepass android | grep -m1 'SHA256:' | awk '{print $2}')
+          got=$(keytool -printcert -jarfile "${{ matrix.file }}" | grep -m1 'SHA256:' | awk '{print $2}')
+          echo "key $want / apk $got"; test "$want" = "$got"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.app }}
+          path: android-app/${{ matrix.file }}
+          if-no-files-found: error
+
+  release:
+    if: github.event_name != 'pull_request'
+    needs: [win, apk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+      - name: Leviathan Registry 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: registry
+          name: Leviathan Registry
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          overwrite_files: true
+          files: |
+            dl/win-registry/*.exe
+            dl/apk-registry/*.apk
+          body: |
+            ## Leviathan Registry — 인물 등록 신청서 작성 · 제출
+            - **LeviathanRegistry-Setup.exe** (Windows 설치형) · **LeviathanRegistry-Portable.exe** (설치 없이 실행)
+            - **LeviathanRegistry.apk** (안드로이드 · 처음 한 번 "출처를 알 수 없는 앱 설치 허용")
+            제출한 문서는 Operation : L 에서 검토하고, 승인되면 R.S.S. 아카이브에 올라갑니다.
+      - name: Operation L 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: operation-l
+          name: 'Operation : L'
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          overwrite_files: true
+          files: |
+            dl/win-oplink/*.exe
+            dl/apk-oplink/*.apk
+          body: |
+            ## Operation : L — 인물 등록 문서 검토 · 승인 (관리자 전용)
+            - **OperationL-Setup.exe** · **OperationL-Portable.exe** (Windows)
+            - **OperationL.apk** (안드로이드)
+            관리자 계정(이메일 · 비밀번호)으로 로그인합니다. 승인 · 반려 권한은 Firestore 보안 규칙에 적힌 관리자 계정에만 있습니다.

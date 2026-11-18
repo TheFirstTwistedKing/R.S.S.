@@ -1,0 +1,107 @@
+/* 종이 서류 (Leviathan Registry 작성 · Operation : L 검토 공용)
+   방향: 어두운 책상 위에 놓인 정보국 등록 신청서. 미색 종이 · 푸른 잉크 손글씨 · 빨간 여백선과 도장 하나. */
+@import url('fonts/pen/pen.css');
+@font-face { font-family: 'Pretendard'; src: url('fonts/PretendardVariable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'D2Coding'; src: url('fonts/D2Coding.woff2') format('woff2'); font-display: swap; }
+:root {
+  --paper: #F1EADA; --paper2: #E9E0CB; --rule: rgba(60, 86, 130, .22); --margin: rgba(190, 56, 46, .55);
+  --ink: #1F2A44; --ink-soft: rgba(31, 42, 68, .55); --pencil: rgba(60, 54, 44, .38); --label: #6B5E48;
+  --stamp: #B3352A; --desk: #14110D;
+  --f-pen: 'PenScript', 'Pretendard', cursive; --f-ui: 'Pretendard', system-ui, sans-serif; --f-mono: 'D2Coding', monospace;
+}
+.paper {
+  position: relative; max-width: 860px; margin: 0 auto; padding: 56px 56px 64px 92px; color: var(--ink);
+  background:
+    linear-gradient(90deg, transparent 70px, var(--margin) 70px, var(--margin) 72px, transparent 72px),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, .35), transparent 60%),
+    repeating-linear-gradient(17deg, rgba(120, 100, 70, .025) 0 2px, transparent 2px 7px),
+    var(--paper);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 30px 60px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .4);
+}
+.paper::before { /* 클립 */
+  content: ''; position: absolute; top: -14px; left: 120px; width: 120px; height: 34px; border: 3px solid #8E8A82; border-bottom: 0; border-radius: 12px 12px 0 0; opacity: .8;
+}
+.pp-head { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.pp-org { font: 700 11px/1.4 var(--f-mono); letter-spacing: .32em; color: var(--label); }
+.pp-title { margin: 6px 0 0; font: 800 30px/1.1 var(--f-ui); letter-spacing: -.01em; color: #2A2219; }
+.pp-sub { margin-top: 6px; font: 12px/1.5 var(--f-ui); color: var(--label); }
+.pp-no { text-align: right; font: 11px/1.6 var(--f-mono); color: var(--label); letter-spacing: .08em; }
+.pp-no b { display: block; font: 30px/1 var(--f-pen); color: var(--ink); letter-spacing: 0; }
+.pp-sec { margin-top: 34px; }
+.pp-sec-h { display: flex; align-items: baseline; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid rgba(42, 34, 25, .35); }
+.pp-sec-h i { font: 700 12px/1 var(--f-mono); font-style: normal; color: var(--stamp); letter-spacing: .1em; }
+.pp-sec-h b { font: 800 17px/1.2 var(--f-ui); color: #2A2219; }
+.pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; margin-top: 10px; }
+.pp-f { grid-column: 1 / -1; display: flex; flex-direction: column; }
+.pp-f.half { grid-column: span 1; }
+.pp-l { margin-top: 10px; font: 600 11px/1.3 var(--f-ui); color: var(--label); letter-spacing: .04em; }
+.pp-l .req { color: var(--stamp); margin-left: 3px; }
+.pp-v, .pp-in, .pp-ta, .pp-sel {
+  font: 27px/34px var(--f-pen); color: var(--ink); background: transparent; border: 0; padding: 0 2px; min-height: 34px;
+  border-bottom: 1px solid var(--rule); border-radius: 0; width: 100%; outline: 0; text-shadow: 0 0 .6px rgba(31, 42, 68, .45);
+}
+.pp-ta { resize: vertical; min-height: 102px; border-bottom: 0; background: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px); background-attachment: local; }
+.pp-v { white-space: pre-wrap; word-break: break-word; }
+.pp-v.long { background: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px); border-bottom: 0; }
+.pp-v.empty { color: var(--pencil); font-size: 22px; }
+.pp-in::placeholder, .pp-ta::placeholder { color: var(--pencil); }
+.pp-in:focus, .pp-ta:focus, .pp-sel:focus { border-bottom-color: var(--ink); }
+.pp-sel { appearance: none; -webkit-appearance: none; cursor: pointer; background: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%) right 8px center / 7px 7px no-repeat, linear-gradient(-45deg, transparent 50%, var(--ink-soft) 50%) right 3px center / 7px 7px no-repeat; }
+.pp-sel option, .pp-sel optgroup { font: 15px var(--f-ui); color: #111; }
+.pp-in.inked, .pp-ta.inked { animation: ink .5s ease-out; }
+@keyframes ink { from { text-shadow: 0 0 3px rgba(31, 42, 68, .7); } }
+.pp-bad { box-shadow: 0 2px 0 var(--stamp); }
+/* 선택 칸 (보안 등급 · 상태): 동그라미 치기 */
+.pp-pick { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; }
+.pp-pick button { position: relative; padding: 2px 6px; border: 0; background: none; font: 25px/30px var(--f-pen); color: var(--ink-soft); cursor: pointer; }
+.pp-pick button.on { color: var(--ink); }
+.pp-pick button.on::after { content: ''; position: absolute; inset: -2px -6px; border: 2px solid var(--ink); border-radius: 50%; transform: rotate(-4deg); opacity: .8; }
+/* 능력치: 잉크 점 */
+.pp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; margin-top: 8px; }
+.pp-stat { display: grid; grid-template-columns: 44px 1fr 24px; align-items: center; gap: 8px; font: 13px/1 var(--f-ui); color: var(--label); }
+.pp-dots { display: flex; gap: 4px; }
+.pp-dots i { width: 15px; height: 15px; border: 1.5px solid var(--ink-soft); border-radius: 50%; cursor: pointer; transform: rotate(var(--r, 0deg)); }
+.pp-dots i.on { background: radial-gradient(circle at 40% 40%, #34446A, var(--ink)); border-color: var(--ink); }
+.pp-stat b { font: 24px/1 var(--f-pen); color: var(--ink); text-align: right; }
+/* 표 (경력 · 관계) */
+.pp-rows { margin-top: 6px; }
+.pp-row { display: grid; gap: 10px; align-items: end; }
+.pp-row.c2 { grid-template-columns: 120px 1fr 28px; } .pp-row.c3 { grid-template-columns: 1fr 1fr 1.4fr 28px; }
+.pp-x { width: 26px; height: 26px; border: 0; background: none; color: var(--stamp); font: 22px/1 var(--f-pen); cursor: pointer; }
+.pp-add { margin-top: 8px; padding: 4px 10px; border: 1px dashed var(--ink-soft); background: none; font: 20px/1.2 var(--f-pen); color: var(--ink); cursor: pointer; }
+/* 초상 */
+.pp-photo { display: grid; grid-template-columns: 180px 1fr; gap: 18px; align-items: start; margin-top: 8px; }
+.pp-frame { position: relative; width: 180px; height: 240px; background: #E6DCC4; border: 1px solid rgba(42, 34, 25, .35); box-shadow: 2px 3px 0 rgba(0, 0, 0, .12); transform: rotate(-1.2deg); overflow: hidden; }
+.pp-frame img, .pp-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: sepia(.25) contrast(1.02); }
+.pp-frame canvas { filter: none; touch-action: none; cursor: crosshair; }
+.pp-frame em { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font: 22px/1.2 var(--f-pen); color: var(--pencil); font-style: normal; padding: 12px; }
+.pp-frame::after { content: ''; position: absolute; top: -8px; left: 50%; width: 46px; height: 18px; margin-left: -23px; background: rgba(230, 220, 190, .7); transform: rotate(-3deg); box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
+.pp-photo-btns { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.pp-btn { padding: 6px 12px; border: 1px solid rgba(42, 34, 25, .45); background: rgba(255, 255, 255, .3); font: 600 13px/1.2 var(--f-ui); color: #2A2219; cursor: pointer; }
+.pp-btn:hover { background: rgba(255, 255, 255, .55); }
+/* 서명 */
+.pp-sign { position: relative; height: 130px; margin-top: 6px; border-bottom: 1px solid var(--ink); }
+.pp-sign canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.pp-sign em { position: absolute; left: 0; bottom: 6px; font: 22px/1 var(--f-pen); color: var(--pencil); font-style: normal; pointer-events: none; }
+.pp-sign img { height: 100%; display: block; }
+/* 도장 */
+.pp-stamp { position: absolute; right: 54px; top: 120px; width: 150px; height: 150px; display: grid; place-items: center; border: 4px double var(--stamp); border-radius: 50%; color: var(--stamp);
+  font: 800 22px/1.15 var(--f-ui); text-align: center; letter-spacing: .06em; transform: rotate(-14deg); opacity: .82; mix-blend-mode: multiply; pointer-events: none; }
+.pp-stamp small { display: block; font: 700 10px/1.4 var(--f-mono); letter-spacing: .18em; }
+.pp-stamp.go { animation: stamp .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes stamp { from { transform: rotate(-14deg) scale(2.2); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: .82; } }
+.pp-stamp.no { color: #4B4F58; border-color: #4B4F58; }
+.pp-stamp.wait { color: #7A6A2F; border-color: #7A6A2F; }
+@media (max-width: 720px) {
+  .paper { padding: 40px 18px 44px 36px; background-size: auto; }
+  .paper { background: linear-gradient(90deg, transparent 22px, var(--margin) 22px, var(--margin) 23px, transparent 23px), repeating-linear-gradient(17deg, rgba(120, 100, 70, .025) 0 2px, transparent 2px 7px), var(--paper); }
+  .paper::before { left: 60px; }
+  .pp-title { font-size: 23px; }
+  .pp-grid, .pp-stats { grid-template-columns: 1fr; }
+  .pp-f.half { grid-column: 1 / -1; }
+  .pp-photo { grid-template-columns: 1fr; }
+  .pp-row.c3 { grid-template-columns: 1fr 1fr 28px; } .pp-row.c3 > :nth-child(3) { grid-column: 1 / 3; }
+  .pp-stamp { width: 110px; height: 110px; right: 14px; top: 92px; font-size: 16px; }
+}
+.pp-stamp[hidden] { display: none; }
+@media (max-width: 720px) { .pp-org { letter-spacing: .18em; } }

@@ -1,0 +1,27 @@
+rules_version = '2';
+// Firestore 보안 규칙 (Firebase 콘솔 → Firestore Database → 규칙 에 붙여 넣기)
+// OWNER_UID 를 관리자 계정의 UID 로 바꿔야 함. Operation : L 에 로그인하면 UID 가 채워진 전문을 보여 주고 복사할 수 있음
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() { return request.auth != null && request.auth.uid == 'OWNER_UID'; }
+
+    // Leviathan Registry 제출 문서: 제출자는 자기 문서를 '대기' 로만 만들 수 있고 자기 것만 볼 수 있음
+    match /submissions/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['status', 'uid', 'createdAt', 'name', 'payload', 'portrait', 'signature', 'app'])
+        && request.resource.data.payload is string && request.resource.data.payload.size() < 300000
+        && request.resource.data.portrait is string && request.resource.data.portrait.size() < 300000
+        && request.resource.data.signature is string && request.resource.data.signature.size() < 150000;
+      allow read: if isOwner() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update, delete: if isOwner();
+    }
+
+    // R.S.S. 아카이브: 누구나 읽기, 관리자만 쓰기
+    match /archive/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+  }
+}

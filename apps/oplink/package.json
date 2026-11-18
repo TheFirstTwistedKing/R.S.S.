@@ -1,0 +1,19 @@
+{
+  "name": "operation-l",
+  "productName": "Operation L",
+  "version": "1.0.0",
+  "description": "R.S.S. 인물 등록 문서 검토 · 승인 (관리자 전용)",
+  "main": "main.js",
+  "author": "R.S.S.",
+  "license": "UNLICENSED",
+  "build": {
+    "appId": "org.rss.operationl",
+    "productName": "Operation L",
+    "electronVersion": "38.8.6",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "web/**/*", "package.json"],
+    "win": { "icon": "build/icon.png", "target": ["nsis", "portable"] },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "shortcutName": "Operation L", "artifactName": "OperationL-Setup.${ext}" },
+    "portable": { "artifactName": "OperationL-Portable.${ext}" }
+  }
+}

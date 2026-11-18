@@ -170,12 +170,14 @@
   var loreCache = null;
   Object.defineProperty(R, 'A', { get: function () {
     if (!loreCache) {
-      try { var n = R.normalize(window.RSSLore || { entities: [] }); loreCache = { entities: n.entities, links: n.links, events: n.events }; }
+      // 내장 문서 + Leviathan Registry 에서 승인되어 온 문서 (remote.js)
+      try { var L = window.RSSLore || { entities: [] }; var n = R.normalize({ entities: (L.entities || []).concat(window.RSSRemote || []), links: L.links || [], events: L.events || [] }); loreCache = { entities: n.entities, links: n.links, events: n.events }; }
       catch (e) { console.error(e); loreCache = { entities: [], links: [], events: [] }; }
     }
     return loreCache;
   } });
 
+  R.resetLore = function () { loreCache = null; };
   R.code = function (e) { return e.sealed ? e.code : R.type(e.type).code + '-' + String(e.no).padStart(4, '0'); };
 
   /* ── 봉인 문서: 앱에 내장된 미완성 문서. 목록에는 보이지만 열람 승인이 없어 내용은 열리지 않음 ── */
