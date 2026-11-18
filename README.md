@@ -124,16 +124,16 @@ Control 은 사용자가 가르친 말을 기억합니다. (인터넷 · 외부 
 
 컴퓨터 경제 창에서 나라(VEC · RTC · SD · DEM · MEC · EOM)를 고르면 그 나라 기업 주가 목록이 나오고, 기업을 누르면 주가 그래프를 봅니다. 열람 전용이며 R.S.S. Mobile 과 같은 기업 · 같은 규칙이지만 각 앱이 따로 계산하므로 숫자는 휴대폰과 같지 않습니다.
 
-## Leviathan Registry · Operation : L (인물 문서 제출 · 승인)
+## Leviathan Registry · Judgement Operation (인물 문서 제출 · 승인)
 
 | 앱 | 하는 일 | 받기 |
 |---|---|---|
 | **Leviathan Registry** | 펜으로 적는 듯한 인물 등록 신청서 작성 → 서명 → 제출 | https://github.com/TheFirstTwistedKing/R.S.S./releases/tag/registry (EXE · APK) |
-| **Operation : L** | 제출 문서 검토 → 승인 · 반려(사유) → 승인하면 R.S.S. 아카이브에 등록 · 내리기 | https://github.com/TheFirstTwistedKing/R.S.S./releases/tag/operation-l (EXE · APK) |
+| **Judgement Operation** | 제출 문서 검토 → 승인 · 반려(사유) → 승인하면 R.S.S. 아카이브에 등록 · 내리기 | https://github.com/TheFirstTwistedKing/R.S.S./releases/tag/judgement-operation (EXE · APK) |
 
 - 세 앱은 Firebase(Firestore · Authentication)로 이어짐. 설정값은 `apps/shared/fb.js`
-- Registry 는 기기마다 익명 로그인, Operation : L 은 관리자 이메일 · 비밀번호 로그인
-- "관리자만 승인" 은 앱이 아니라 Firestore 보안 규칙(`firestore.rules`)이 지킴. Operation : L 에 로그인하면 내 UID 가 들어간 규칙 전문을 보여 줌
+- Registry 는 기기마다 익명 로그인, Judgement Operation 은 관리자 이메일 · 비밀번호 로그인
+- "관리자만 승인" 은 앱이 아니라 Firestore 보안 규칙(`firestore.rules`)이 지킴. Judgement Operation 에 로그인하면 내 UID 가 들어간 규칙 전문을 보여 줌
 - R.S.S. 는 켤 때와 10분마다 승인된 문서를 받아 아카이브(인물)에 표시하고, 인터넷이 없을 때를 위해 마지막 목록을 보관
 - 작성 항목 정의: `apps/shared/schema.js` (출신 국가는 경제 창 나라 목록과 같음)
 
@@ -141,7 +141,7 @@ Control 은 사용자가 가르친 말을 기억합니다. (인터넷 · 외부 
 1. Firebase 콘솔 → **Firestore Database** → 데이터베이스 만들기 (프로덕션 모드)
 2. **Authentication** → 시작하기 → 로그인 방법에서 **익명** 과 **이메일/비밀번호** 사용 설정
 3. Authentication → 사용자 → **사용자 추가** 로 관리자 계정(이메일 · 비밀번호) 만들기
-4. Operation : L 에 그 계정으로 로그인 → **보안 규칙** 탭의 규칙 복사 → Firestore Database → 규칙 에 붙여 넣고 게시
+4. Judgement Operation 에 그 계정으로 로그인 → **보안 규칙** 탭의 규칙 복사 → Firestore Database → 규칙 에 붙여 넣고 게시
 
 ## CCTV 감시실
 

@@ -1,4 +1,4 @@
-/* Operation : L — 제출된 인물 문서를 검토하고 승인 · 반려. 승인하면 R.S.S. 아카이브(archive)에 올라감
+/* Judgement Operation — 제출된 인물 문서를 검토하고 승인 · 반려. 승인하면 R.S.S. 아카이브(archive)에 올라감
    - 이메일 · 비밀번호 로그인 (Firebase 콘솔에서 만든 관리자 계정 하나)
    - 실제로 "나만" 되게 하는 것은 Firestore 보안 규칙: 규칙에 적힌 관리자 계정(UID)만 읽기 · 승인 · 반려 가능
    - 처음 로그인하면 이 계정의 UID 를 넣은 보안 규칙 전문을 보여 주고 복사할 수 있게 함 */
@@ -14,7 +14,7 @@
       "rules_version = '2';",
       "service cloud.firestore {",
       "  match /databases/{database}/documents {",
-      "    // 관리자: Operation : L 에 로그인하는 계정 하나",
+      "    // 관리자: Judgement Operation 에 로그인하는 계정 하나",
       "    function isOwner() { return request.auth != null && request.auth.uid == '" + uid + "'; }",
       "",
       "    // Leviathan Registry 제출 문서: 제출자는 자기 문서를 '대기' 로만 만들 수 있고 자기 것만 볼 수 있음",
@@ -52,7 +52,7 @@
     var em = h('input', { class: 'inp', type: 'email', autocomplete: 'username', placeholder: 'admin@example.com' });
     var pw = h('input', { class: 'inp', type: 'password', autocomplete: 'current-password' });
     var err = h('p', { class: 'err' }, errText || ''), go = h('button', { class: 'btn go', type: 'submit', style: 'width:100%' }, '접속');
-    var form = h('form', { class: 'lg-box' }, h('div', { class: 'lg-k' }, 'R.S.S. · REVIEW CONSOLE'), h('div', { class: 'lg-t' }, 'OPERATION : L'),
+    var form = h('form', { class: 'lg-box' }, h('div', { class: 'lg-k' }, 'R.S.S. · REVIEW CONSOLE'), h('div', { class: 'lg-t' }, 'JUDGEMENT', h('br'), 'OPERATION'),
       h('p', { class: 'lg-d' }, '리바이어던 등록 문서 검토 · 관리자 전용'),
       h('label', { class: 'fld' }, h('span', null, 'EMAIL'), em), h('label', { class: 'fld' }, h('span', null, 'PASSWORD'), pw), go, err);
     form.addEventListener('submit', function (e) {
@@ -72,7 +72,7 @@
       nav.appendChild(h('button', { type: 'button', class: tab === t[0] ? 'on' : '', 'data-t': t[0], onclick: function () { tab = t[0]; P.pen('paper'); [].forEach.call(nav.children, function (b) { b.classList.toggle('on', b.getAttribute('data-t') === tab); }); draw(); } }, t[1], counts[t[0]] || null));
     });
     var body = h('div');
-    app.appendChild(h('header', { class: 'top' }, h('div', { class: 'top-t' }, 'OPERATION : L', h('span', null, 'REVIEW')), nav,
+    app.appendChild(h('header', { class: 'top' }, h('div', { class: 'top-t' }, 'JUDGEMENT OPERATION', h('span', null, 'REVIEW')), nav,
       h('div', { class: 'who' }, auth.s.email, h('button', { type: 'button', onclick: function () { load(); } }, '새로고침'), h('button', { type: 'button', onclick: function () { auth.out(); login(); } }, '로그아웃'))));
     app.appendChild(body);
     var denied = false;

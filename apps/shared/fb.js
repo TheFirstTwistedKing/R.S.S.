@@ -1,6 +1,6 @@
-/* Firebase 연결 (Leviathan Registry · Operation : L · R.S.S. 공용)
+/* Firebase 연결 (Leviathan Registry · Judgement Operation · R.S.S. 공용)
    SDK 없이 REST 로 직접 호출함: Electron(file://) · 안드로이드 앱 · 브라우저 어디서나 똑같이 동작하게
-   - 로그인: Registry = 익명(기기마다 하나), Operation : L = 이메일 · 비밀번호(관리자 한 명)
+   - 로그인: Registry = 익명(기기마다 하나), Judgement Operation = 이메일 · 비밀번호(관리자 한 명)
    - 데이터: Firestore
        submissions/{id}  제출된 인물 문서 (status: pending · approved · rejected)
        archive/{id}      승인되어 R.S.S. 아카이브에 올라간 문서 (누구나 읽기, 관리자만 쓰기)

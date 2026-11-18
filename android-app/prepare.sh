@@ -3,7 +3,7 @@
 # 아이콘 · 시작 화면 · 세로 고정 · 상단 바 색 · 버전을 맞춤. (android-app 폴더에서 실행)
 #   사용: bash prepare.sh <versionCode>
 set -euo pipefail
-#   다른 앱(Leviathan Registry · Operation : L)도 같은 방법으로 만듦: 환경 변수로 바꿔 줌
+#   다른 앱(Leviathan Registry · Judgement Operation)도 같은 방법으로 만듦: 환경 변수로 바꿔 줌
 #     WEB_SRC(화면 폴더) · APP_ID · APP_NAME · RES(아이콘 · 시작 화면) · VNAME(버전) · BG(바탕색)
 VCODE="${1:-1}"
 VNAME="${VNAME:-$(node -p "require('./package.json').version")}"

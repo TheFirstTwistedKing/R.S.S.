@@ -1,4 +1,4 @@
-/* Leviathan Registry → Operation : L 에서 승인된 인물 문서를 받아 아카이브에 넣음
+/* Leviathan Registry → Judgement Operation 에서 승인된 인물 문서를 받아 아카이브에 넣음
    - Firestore archive (누구나 읽기 가능) 를 앱을 켤 때와 10분마다 받아 옴 · 로그인 필요 없음
    - 인터넷이 없을 때를 위해 마지막으로 받은 목록을 이 컴퓨터에 보관 */
 (function () {
